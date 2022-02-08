@@ -1,3 +1,6 @@
+# Just ignore the entire CLion directory for this project
+.idea
+
 # Created by https://www.toptal.com/developers/gitignore/api/macos,linux,vim,clion
 # Edit at https://www.toptal.com/developers/gitignore?templates=macos,linux,vim,clion
 

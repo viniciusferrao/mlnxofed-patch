@@ -8,7 +8,7 @@
 # Stop execution in case of any error (add x for debugging)
 set -e
 
-# Output directory for the new RPMs
+# Output directory for the new RPMS
 RPMS_OUTPUT_DIR=$HOME/PATCHED-MLNX-OFED
 # rpmbuild root directory
 RPM_BUILD_ROOT=~/dd90dbfa-8d9f-43dd-a7ac-89f73e80e40f
@@ -345,7 +345,7 @@ cd $WORK_DIR
 
 # Install required packages for building
 echo Installing required dependencies...
-dnf install -y kernel-rpm-macros pandoc cmake3
+dnf install -y kernel-rpm-macros pandoc cmake3 systemd-devel python3-devel python3-Cython libnl3-devel
 echo
 
 # We can try to save some bandwidth if the SRC file is already in place, probably not...
@@ -355,7 +355,7 @@ fi
 echo
 
 tar zxf MLNX_OFED_SRC-$MLNX_OFED_VERSION.tgz
-echo Extracting files from SRPMs...
+echo Extracting files from SRPMS...
 rpm2cpio MLNX_OFED_SRC-$MLNX_OFED_VERSION/SRPMS/rdma-core-$RDMA_CORE_VERSION-$RDMA_CORE_MINOR_VERSION.src.rpm | cpio -i
 echo
 

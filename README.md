@@ -18,6 +18,7 @@ Shell script to patch MLNX OFED to add back support for MLX4 and EFA
   * 5.4-1.0.3.0
 
 
+* CodeReady Builder / PowerTools repositories must be enabled 
 * root privileges are needed for installation
 
 ## Usage:
