@@ -346,7 +346,7 @@ cd $WORK_DIR
 # Install required packages for building
 echo Installing required dependencies...
 # Workaround for conflicting Cython from OpenHPC 2.x
-if [ `rpm -q python3-Cython-ohpc` ] ; then
+if rpm -q --quiet python3-Cython-ohpc ; then
 	dnf remove -y python3-Cython-ohpc
 fi
 dnf install -y kernel-rpm-macros pandoc cmake3 systemd-devel python3-devel libnl3-devel python3-Cython
