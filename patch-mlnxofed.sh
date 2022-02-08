@@ -1,9 +1,9 @@
 #!/bin/sh
 # Patch to add back support for MLX4 and EFA on MLNX OFED
-# This is script is only tested against Enterprise Linux 8
+# This script is only tested against Enterprise Linux 8
 #
-# vinicius@ferrao.net.br
-# ferrao@versatushpc.com.br
+# vinicius {\a\t} ferrao.net.br
+# ferrao {\a\t} versatushpc.com.br
 
 # Stop execution in case of any error (add x for debugging)
 set -e
@@ -345,11 +345,16 @@ cd $WORK_DIR
 
 # Install required packages for building
 echo Installing required dependencies...
-dnf install -y kernel-rpm-macros pandoc cmake3 systemd-devel python3-devel python3-Cython libnl3-devel
+dnf install -y kernel-rpm-macros pandoc cmake3 systemd-devel python3-devel libnl3-devel
+
+# Workaround for conflicting Cython from OpenHPC 2.x
+if [ ! `rpm -q python3-Cython-ohpc` ] ; then
+	dnf install -y python3-Cython
+fi
 echo
 
 # We can try to save some bandwidth if the SRC file is already in place, probably not...
-if [ ! -f MLNX_OFED_SRC-$MLNX_OFED_VERSION.tgz ]; then
+if [ ! -f MLNX_OFED_SRC-$MLNX_OFED_VERSION.tgz ] ; then
 	wget https://content.mellanox.com/ofed/MLNX_OFED-$MLNX_OFED_VERSION/MLNX_OFED_SRC-$MLNX_OFED_VERSION.tgz
 fi
 echo
