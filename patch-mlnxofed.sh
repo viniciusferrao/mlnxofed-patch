@@ -345,12 +345,11 @@ cd $WORK_DIR
 
 # Install required packages for building
 echo Installing required dependencies...
-dnf install -y kernel-rpm-macros pandoc cmake3 systemd-devel python3-devel libnl3-devel
-
 # Workaround for conflicting Cython from OpenHPC 2.x
 if [ ! `rpm -q python3-Cython-ohpc` ] ; then
-	dnf install -y python3-Cython
+	dnf remove -y python3-Cython-ohpc
 fi
+dnf install -y kernel-rpm-macros pandoc cmake3 systemd-devel python3-devel libnl3-devel python3-Cython
 echo
 
 # We can try to save some bandwidth if the SRC file is already in place, probably not...
