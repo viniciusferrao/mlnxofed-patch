@@ -15,6 +15,7 @@ Shell script to patch MLNX OFED to add back support for MLX4 and EFA
   * 5.5-1.0.3.2
   * 5.4-3.1.0.0
   * 5.4-3.0.3.0
+  * 5.4-2.4.1.3
   * 5.4-1.0.3.0
 
 
