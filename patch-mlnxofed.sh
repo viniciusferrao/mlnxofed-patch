@@ -356,7 +356,7 @@ echo Installing required dependencies...
 if rpm -q --quiet python3-Cython-ohpc ; then
 	dnf remove -y python3-Cython-ohpc
 fi
-dnf install -y kernel-rpm-macros rpm-build patch pandoc cmake3 systemd-devel python3-devel libnl3-devel python3-Cython
+dnf install -y kernel-rpm-macros rpm-build patch pandoc cmake3 systemd-devel python3-devel libnl3-devel python3-Cython perl-generators
 echo
 
 # We can try to save some bandwidth if the SRC file is already in place, probably not...
