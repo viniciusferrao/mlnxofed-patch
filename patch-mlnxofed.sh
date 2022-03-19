@@ -467,7 +467,8 @@ echo
 
 # We can try to save some bandwidth if the SRC file is already in place, probably not...
 if [ ! -f MLNX_OFED_SRC-$MLNX_OFED_VERSION.tgz ] ; then
-	wget https://content.mellanox.com/ofed/MLNX_OFED-$MLNX_OFED_VERSION/MLNX_OFED_SRC-$MLNX_OFED_VERSION.tgz
+	echo Downloading MLNX OFED $MLNX_OFED_VERSION sources...
+	curl -O https://content.mellanox.com/ofed/MLNX_OFED-$MLNX_OFED_VERSION/MLNX_OFED_SRC-$MLNX_OFED_VERSION.tgz
 fi
 echo
 
