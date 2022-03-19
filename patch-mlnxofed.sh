@@ -288,6 +288,70 @@ echo Patched: rdma-core.spec
 echo
 }
 
+patch_mlnx_ofed49() {
+# CMakeLists.txt
+cat > CMakeLists.txt.patch << 'EOF'
+--- CMakeLists.txt		2021-04-23 07:31:00.000000000 -0300
++++ CMakeLists.txt.patched	2022-03-19 00:11:01.247634859 -0300
+@@ -624,8 +624,10 @@
+ if (0)
+ add_subdirectory(providers/bnxt_re)
+ add_subdirectory(providers/cxgb4) # NO SPARSE
++endif()
+ add_subdirectory(providers/efa)
+ add_subdirectory(providers/efa/man)
++if (0)
+ add_subdirectory(providers/hns)
+ add_subdirectory(providers/i40iw) # NO SPARSE
+ endif()
+EOF
+
+patch -u CMakeLists.txt -i CMakeLists.txt.patch
+rm -f CMakeLists.txt.patch
+echo Patched: CMakeLists.txt
+echo
+
+# rdma-core.spec
+cat > rdma-core.spec.patch << 'EOF'
+--- rdma-core.spec	2021-04-23 07:31:00.000000000 -0300
++++ rdma-core.spec.patched	2022-03-19 00:27:13.436049287 -0300
+@@ -263,6 +263,7 @@
+ 
+ Device-specific plug-in ibverbs userspace drivers are included:
+ 
++- libefa: Amazon Elastic Fabric Adapter
+ - libmlx4: Mellanox ConnectX-3 InfiniBand HCA
+ - libmlx5: Mellanox Connect-IB/X-4+ InfiniBand HCA
+ 
+@@ -540,10 +541,12 @@
+ %endif
+ %{_libdir}/lib*.so
+ %{_libdir}/pkgconfig/*.pc
++%{_mandir}/man3/efadv*
+ %{_mandir}/man3/ibv_*
+ %{_mandir}/man3/rdma*
+ %{_mandir}/man3/umad*
+ %{_mandir}/man3/*_to_ibv_rate.*
++%{_mandir}/man7/efadv*
+ %{_mandir}/man7/rdma_cm.*
+ %ifnarch s390x s390
+ %{_mandir}/man3/mlx5dv*
+@@ -638,6 +641,7 @@
+ %files -n libibverbs
+ %dir %{_sysconfdir}/libibverbs.d
+ %dir %{_libdir}/libibverbs
++%{_libdir}/libefa.so.*
+ %{_libdir}/libibverbs*.so.*
+ %{_libdir}/libibverbs/*.so
+ %ifnarch s390x s390
+EOF
+
+patch -u rdma-core.spec -i rdma-core.spec.patch
+rm -f rdma-core.spec.patch
+echo Patched: rdma-core.spec
+echo
+}
+
 #
 # Shell startup (main) begins here
 #
@@ -338,6 +402,48 @@ case $MLNX_OFED_VERSION in
 		RDMA_CORE_MINOR_VERSION="1.54103"
 		RDMA_CORE_NEW_VERSION="54104.versatushpc"
 		;;
+	4.9-4.1.7.0)
+		# MLNX OFED 4.9-4.1.7.0 version info
+		# https://content.mellanox.com/ofed/MLNX_OFED-4.9-4.1.7.0/MLNX_OFED_SRC-4.9-4.1.7.0.tgz
+		RDMA_CORE_VERSION="50mlnx1"
+		RDMA_CORE_MINOR_VERSION="1.49417"
+		RDMA_CORE_NEW_VERSION="49418.versatushpc"
+		;;
+	4.9-4.0.8.0)
+		# MLNX OFED 4.9-4.0.8.0 version info
+		# https://content.mellanox.com/ofed/MLNX_OFED-4.9-4.0.8.0/MLNX_OFED_SRC-4.9-4.0.8.0.tgz
+		RDMA_CORE_VERSION="50mlnx1"
+		RDMA_CORE_MINOR_VERSION="1.49408"
+		RDMA_CORE_NEW_VERSION="49409.versatushpc"
+		;;
+	4.9-3.1.5.0)
+		# MLNX OFED 4.9-3.1.5.0 version info
+		# https://content.mellanox.com/ofed/MLNX_OFED-4.9-3.1.5.0/MLNX_OFED_SRC-4.9-3.1.5.0.tgz
+		RDMA_CORE_VERSION="50mlnx1"
+		RDMA_CORE_MINOR_VERSION="1.49315"
+		RDMA_CORE_NEW_VERSION="49316.versatushpc"
+		;;
+	4.9-2.2.6.0)
+		# MLNX OFED 4.9-2.2.6.0 version info
+		# https://content.mellanox.com/ofed/MLNX_OFED-4.9-2.2.6.0/MLNX_OFED_SRC-4.9-2.2.6.0.tgz
+		RDMA_CORE_VERSION="50mlnx1"
+		RDMA_CORE_MINOR_VERSION="1.49226"
+		RDMA_CORE_NEW_VERSION="49227.versatushpc"
+		;;
+	4.9-2.2.4.0)
+		# MLNX OFED 4.9-2.2.4.0 version info
+		# https://content.mellanox.com/ofed/MLNX_OFED-4.9-2.2.4.0/MLNX_OFED_SRC-4.9-2.2.4.0.tgz
+		RDMA_CORE_VERSION="50mlnx1"
+		RDMA_CORE_MINOR_VERSION="1.49224"
+		RDMA_CORE_NEW_VERSION="49225.versatushpc"
+		;;
+	4.9-0.1.7.0)
+		# MLNX OFED 4.9-0.1.7.0 version info
+		# https://content.mellanox.com/ofed/MLNX_OFED-4.9-0.1.7.0/MLNX_OFED_SRC-4.9-0.1.7.0.tgz
+		RDMA_CORE_VERSION="50mlnx1"
+		RDMA_CORE_MINOR_VERSION="1.49017"
+		RDMA_CORE_NEW_VERSION="49018.versatushpc"
+		;;
 	*)
 		# Unsupported MLNX OFED release
 		echo "Unsupported MLNX OFED release: $MLNX_OFED_VERSION"
@@ -387,6 +493,14 @@ case $MLNX_OFED_VERSION in
 	5.4-2.4.1.3|\
 	5.4-1.0.3.0)
 		patch_mlnx_ofed54
+		;;
+	4.9-4.1.7.0|\
+	4.9-4.0.8.0|\
+	4.9-3.1.5.0|\
+	4.9-2.2.6.0|\
+	4.9-2.2.4.0|\
+	4.9-0.1.7.0)
+		patch_mlnx_ofed49
 		;;
 esac
 
