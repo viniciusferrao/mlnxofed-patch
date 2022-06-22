@@ -13,6 +13,8 @@ Shell script to patch MLNX OFED to add back support for MLX4 and EFA
 
 * Mellanox OFED
   * 5.5-1.0.3.2
+  * 5.4-3.4.0.0
+  * 5.4-3.2.7.2.3
   * 5.4-3.1.0.0
   * 5.4-3.0.3.0
   * 5.4-2.4.1.3
