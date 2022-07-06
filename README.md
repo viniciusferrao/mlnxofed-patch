@@ -2,6 +2,15 @@
 
 Shell script to patch MLNX OFED to add back support for MLX4 and EFA
 
+## Use cases
+
+This script has proven to be useful if you're maintaining systems like:
+* HPC cluster with [OpenHPC](http://www.openhpc.community)
+* [Red Hat Virtualization](https://www.redhat.com/technologies/virtualization/enterprise-virtualization)
+and [oVirt](https://www.ovirt.org) with Openvswitch
+
+If you have an additional use case please update this documentation with a Pull Request.
+
 ## Requirements:
 * Enterprise Linux 8
   * Red Hat Enterprise Linux (RHEL)

@@ -381,13 +381,13 @@ case $MLNX_OFED_VERSION in
 		RDMA_CORE_MINOR_VERSION="1.54340"
 		RDMA_CORE_NEW_VERSION="54341.versatushpc"
 		;;
-  5.4-3.2.7.2.3)
-    # MLNX OFED 5.4-3.2.7.2.3 version info
-    # https://content.mellanox.com/ofed/MLNX_OFED-5.4-3.2.7.2.3/MLNX_OFED_SRC-5.4-3.2.7.2.3.tgz
+	5.4-3.2.7.2.3)
+		# MLNX OFED 5.4-3.2.7.2.3 version info
+		# https://content.mellanox.com/ofed/MLNX_OFED-5.4-3.2.7.2.3/MLNX_OFED_SRC-5.4-3.2.7.2.3.tgz
 		RDMA_CORE_VERSION="54mlnx1"
 		RDMA_CORE_MINOR_VERSION="1.54327"
 		RDMA_CORE_NEW_VERSION="54328.versatushpc"
-    ;;
+		;;
 	5.4-3.1.0.0)
 		# MLNX OFED 5.4-3.1.0.0 version info
 		# https://content.mellanox.com/ofed/MLNX_OFED-5.4-3.1.0.0/MLNX_OFED_SRC-5.4-3.1.0.0.tgz
@@ -503,8 +503,8 @@ case $MLNX_OFED_VERSION in
 	5.5-1.0.3.2)
 		patch_mlnx_ofed55
 		;;
-  5.4-3.4.0.0|\
-  5.4-3.2.7.2.3|\
+	5.4-3.4.0.0|\
+	5.4-3.2.7.2.3|\
 	5.4-3.1.0.0|\
 	5.4-3.0.3.0|\
 	5.4-2.4.1.3|\
@@ -548,7 +548,7 @@ rm -rf $WORK_DIR
 rm -rf $RPM_BUILD_ROOT
 
 echo
-echo Mellanox OFED installation has been patched for EFA \(libefa.so\) and MLX4 support
+echo Mellanox OFED installation has been patched for EFA \(libefa.so\) and MLX4 \(libmlx4.so\) support
 echo RPM packages are available at $RPMS_OUTPUT_DIR
 echo
 echo Done
