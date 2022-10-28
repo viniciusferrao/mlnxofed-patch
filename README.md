@@ -28,6 +28,7 @@ If you have an additional use case please update this documentation with a Pull 
   * 5.4-3.0.3.0
   * 5.4-2.4.1.3
   * 5.4-1.0.3.0
+  * 4.9-5.1.0.0
   * 4.9-4.1.7.0
   * 4.9-4.0.8.0
   * 4.9-3.1.5.0

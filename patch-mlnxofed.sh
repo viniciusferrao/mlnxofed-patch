@@ -416,6 +416,13 @@ case $MLNX_OFED_VERSION in
 		RDMA_CORE_MINOR_VERSION="1.54103"
 		RDMA_CORE_NEW_VERSION="54104.versatushpc"
 		;;
+	4.9-5.1.0.0)
+		# MLNX OFED 4.9-5.1.0.0 version info
+		# https://content.mellanox.com/ofed/MLNX_OFED-4.9-5.1.0.0/MLNX_OFED_SRC-4.9-5.1.0.0.tgz
+		RDMA_CORE_VERSION="50mlnx1"
+		RDMA_CORE_MINOR_VERSION="1.49510"
+		RDMA_CORE_NEW_VERSION="49510.versatushpc"
+		;;
 	4.9-4.1.7.0)
 		# MLNX OFED 4.9-4.1.7.0 version info
 		# https://content.mellanox.com/ofed/MLNX_OFED-4.9-4.1.7.0/MLNX_OFED_SRC-4.9-4.1.7.0.tgz
@@ -511,6 +518,7 @@ case $MLNX_OFED_VERSION in
 	5.4-1.0.3.0)
 		patch_mlnx_ofed54
 		;;
+	4.9-5.1.0.0|\
 	4.9-4.1.7.0|\
 	4.9-4.0.8.0|\
 	4.9-3.1.5.0|\
