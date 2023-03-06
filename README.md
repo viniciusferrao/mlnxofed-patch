@@ -21,6 +21,9 @@ If you have an additional use case please update this documentation with a Pull 
 
 
 * Mellanox OFED
+  * 5.8-2.0.3.0
+  * 5.8-1.1.2.1
+  * 5.8-1.0.1.1
   * 5.5-1.0.3.2
   * 5.4-3.4.0.0
   * 5.4-3.2.7.2.3
