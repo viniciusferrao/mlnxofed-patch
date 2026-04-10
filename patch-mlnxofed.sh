@@ -1,6 +1,6 @@
 #!/bin/sh
 # Patch to add back support for MLX4 and EFA on MLNX OFED
-# This script is only tested against Enterprise Linux 8
+# This script is tested against Enterprise Linux 8 and 9
 #
 # vinicius {\a\t} ferrao.net.br
 # ferrao {\a\t} versatushpc.com.br
@@ -29,6 +29,42 @@ patch_checked() {
 		cat "$patch_target.rej" >&2
 		return 1
 	fi
+}
+
+dnf_install_args() {
+	el_major=$(rpm -E '%{?rhel}')
+
+	if [ "$el_major" = 9 ]; then
+		echo "-y --nobest"
+	else
+		echo "-y"
+	fi
+}
+
+install_required_dependencies() {
+	el_major=$(rpm -E '%{?rhel}')
+	cmake_package=
+	dnf_args=$(dnf_install_args)
+
+	case "$el_major" in
+	8)
+		cmake_package=cmake3
+		;;
+	9)
+		cmake_package=cmake
+		;;
+	*)
+		cmake_package=cmake
+		;;
+	esac
+
+	if ! rpm -q --quiet pandoc 2>/dev/null && ! dnf -q list --available pandoc >/dev/null 2>&1; then
+		echo "Unable to find pandoc in enabled repositories" >&2
+		echo "On Enterprise Linux 9, enable EPEL before running this script" >&2
+		return 1
+	fi
+
+	dnf install $dnf_args curl cpio kernel-rpm-macros rpm-build patch pandoc "$cmake_package" systemd-devel python3-devel libnl3-devel python3-Cython perl-generators
 }
 
 # Patches
@@ -963,7 +999,7 @@ main() {
 	if rpm -q --quiet python3-Cython-ohpc ; then
 		dnf remove -y python3-Cython-ohpc
 	fi
-	dnf install -y curl cpio kernel-rpm-macros rpm-build patch pandoc cmake3 systemd-devel python3-devel libnl3-devel python3-Cython perl-generators
+	install_required_dependencies
 	echo
 
 	if [ ! -f MLNX_OFED_SRC-$MLNX_OFED_VERSION.tgz ] ; then
@@ -992,10 +1028,11 @@ main() {
 	sed -i s/Release:.*/Release:\ $RDMA_CORE_NEW_VERSION/g rdma-core.spec
 	sed -i s/Source:.*/Source:\ rdma-core-%{version}-%{release}.tgz/g rdma-core.spec
 
+	dnf_args=$(dnf_install_args)
 	if ! rpm -q --quiet 'dnf-command(builddep)' && ! rpm -q --quiet dnf-plugins-core; then
-		dnf install -y dnf-plugins-core
+		dnf install $dnf_args dnf-plugins-core
 	fi
-	dnf builddep -y rdma-core.spec
+	dnf builddep $dnf_args rdma-core.spec
 
 	tar czf rdma-core-$RDMA_CORE_VERSION-$RDMA_CORE_NEW_VERSION.tgz rdma-core-$RDMA_CORE_VERSION
 	cp rdma-core-$RDMA_CORE_VERSION-$RDMA_CORE_NEW_VERSION.tgz $RPM_BUILD_ROOT/SOURCES
