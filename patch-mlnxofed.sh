@@ -352,211 +352,269 @@ echo Patched: rdma-core.spec
 echo
 }
 
-#
-# Shell startup (main) begins here
-#
+detect_mlnx_ofed_version() {
+	if [ -n "${MLNX_OFED_VERSION_OVERRIDE:-}" ]; then
+		MLNX_OFED_VERSION=$MLNX_OFED_VERSION_OVERRIDE
+	else
+		MLNX_OFED_VERSION=`ofed_info -s | cut -f 2- -d- | cut -f 1 -d:`
+	fi
+}
 
-# Detect MLNX OFED release
-MLNX_OFED_VERSION=`ofed_info -s | cut -f 2- -d- | cut -f 1 -d:`
+load_release_metadata() {
+	case $MLNX_OFED_VERSION in
+		5.5-1.0.3.2)
+			# MLNX OFED 5.5-1.0.3.2 version info
+			# https://content.mellanox.com/ofed/MLNX_OFED-5.5-1.0.3.2/MLNX_OFED_SRC-5.5-1.0.3.2.tgz
+			RDMA_CORE_VERSION="55mlnx37"
+			RDMA_CORE_MINOR_VERSION="1.55103"
+			RDMA_CORE_NEW_VERSION="55104.versatushpc"
+			PATCH_FAMILY="55"
+			;;
+		5.4-3.7.5.0)
+			# MLNX OFED 5.4-3.7.5.0 version info
+			# https://content.mellanox.com/ofed/MLNX_OFED-5.4-3.7.5.0/MLNX_OFED_SRC-5.4-3.7.5.0.tgz
+			RDMA_CORE_VERSION="54mlnx1"
+			RDMA_CORE_MINOR_VERSION="1.54375"
+			RDMA_CORE_NEW_VERSION="54376.versatushpc"
+			PATCH_FAMILY="54"
+			;;
+		5.4-3.6.8.1)
+			# MLNX OFED 5.4-3.6.8.1 version info
+			# https://content.mellanox.com/ofed/MLNX_OFED-5.4-3.6.8.1/MLNX_OFED_SRC-5.4-3.6.8.1.tgz
+			RDMA_CORE_VERSION="54mlnx1"
+			RDMA_CORE_MINOR_VERSION="1.54368"
+			RDMA_CORE_NEW_VERSION="54369.versatushpc"
+			PATCH_FAMILY="54"
+			;;
+		5.4-3.5.8.0)
+			# MLNX OFED 5.4-3.5.8.0 version info
+			# https://content.mellanox.com/ofed/MLNX_OFED-5.4-3.5.8.0/MLNX_OFED_SRC-5.4-3.5.8.0.tgz
+			RDMA_CORE_VERSION="54mlnx1"
+			RDMA_CORE_MINOR_VERSION="1.54358"
+			RDMA_CORE_NEW_VERSION="54359.versatushpc"
+			PATCH_FAMILY="54"
+			;;
+		5.4-3.4.0.0)
+			# MLNX OFED 5.4-3.4.0.0 version info
+			# https://content.mellanox.com/ofed/MLNX_OFED-5.4-3.4.0.0/MLNX_OFED_SRC-5.4-3.4.0.0.tgz
+			RDMA_CORE_VERSION="54mlnx1"
+			RDMA_CORE_MINOR_VERSION="1.54340"
+			RDMA_CORE_NEW_VERSION="54341.versatushpc"
+			PATCH_FAMILY="54"
+			;;
+		5.4-3.2.7.2.3)
+			# MLNX OFED 5.4-3.2.7.2.3 version info
+			# https://content.mellanox.com/ofed/MLNX_OFED-5.4-3.2.7.2.3/MLNX_OFED_SRC-5.4-3.2.7.2.3.tgz
+			RDMA_CORE_VERSION="54mlnx1"
+			RDMA_CORE_MINOR_VERSION="1.54327.23"
+			RDMA_CORE_NEW_VERSION="54327.24.versatushpc"
+			PATCH_FAMILY="54"
+			;;
+		5.4-3.1.0.0)
+			# MLNX OFED 5.4-3.1.0.0 version info
+			# https://content.mellanox.com/ofed/MLNX_OFED-5.4-3.1.0.0/MLNX_OFED_SRC-5.4-3.1.0.0.tgz
+			RDMA_CORE_VERSION="54mlnx1"
+			RDMA_CORE_MINOR_VERSION="1.54310"
+			RDMA_CORE_NEW_VERSION="54311.versatushpc"
+			PATCH_FAMILY="54"
+			;;
+		5.4-3.0.3.0)
+			# MLNX OFED 5.4-3.0.3.0 version info
+			# https://content.mellanox.com/ofed/MLNX_OFED-5.4-3.0.3.0/MLNX_OFED_SRC-5.4-3.0.3.0.tgz
+			RDMA_CORE_VERSION="54mlnx1"
+			RDMA_CORE_MINOR_VERSION="1.54303"
+			RDMA_CORE_NEW_VERSION="54304.versatushpc"
+			PATCH_FAMILY="54"
+			;;
+		5.4-2.4.1.3)
+			# MLNX OFED 5.4-2.4.1.3 version info
+			# https://content.mellanox.com/ofed/MLNX_OFED-5.4-2.4.1.3/MLNX_OFED_SRC-5.4-2.4.1.3.tgz
+			RDMA_CORE_VERSION="54mlnx1"
+			RDMA_CORE_MINOR_VERSION="1.54241"
+			RDMA_CORE_NEW_VERSION="54242.versatushpc"
+			PATCH_FAMILY="54"
+			;;
+		5.4-1.0.3.0)
+			# MLNX OFED 5.4-1.0.3.0 version info
+			# https://content.mellanox.com/ofed/MLNX_OFED-5.4-1.0.3.0/MLNX_OFED_SRC-5.4-1.0.3.0.tgz
+			RDMA_CORE_VERSION="54mlnx1"
+			RDMA_CORE_MINOR_VERSION="1.54103"
+			RDMA_CORE_NEW_VERSION="54104.versatushpc"
+			PATCH_FAMILY="54"
+			;;
+		4.9-7.1.0.0)
+			# MLNX OFED 4.9-7.1.0.0 version info
+			# https://content.mellanox.com/ofed/MLNX_OFED-4.9-7.1.0.0/MLNX_OFED_SRC-4.9-7.1.0.0.tgz
+			RDMA_CORE_VERSION="50mlnx1"
+			RDMA_CORE_MINOR_VERSION="1.49710"
+			RDMA_CORE_NEW_VERSION="49711.versatushpc"
+			PATCH_FAMILY="49"
+			;;
+		4.9-6.0.6.0)
+			# MLNX OFED 4.9-6.0.6.0 version info
+			# https://content.mellanox.com/ofed/MLNX_OFED-4.9-6.0.6.0/MLNX_OFED_SRC-4.9-6.0.6.0.tgz
+			RDMA_CORE_VERSION="50mlnx1"
+			RDMA_CORE_MINOR_VERSION="1.49606"
+			RDMA_CORE_NEW_VERSION="49607.versatushpc"
+			PATCH_FAMILY="49"
+			;;
+		4.9-5.1.0.0)
+			# MLNX OFED 4.9-5.1.0.0 version info
+			# https://content.mellanox.com/ofed/MLNX_OFED-4.9-5.1.0.0/MLNX_OFED_SRC-4.9-5.1.0.0.tgz
+			RDMA_CORE_VERSION="50mlnx1"
+			RDMA_CORE_MINOR_VERSION="1.49510"
+			RDMA_CORE_NEW_VERSION="49510.versatushpc"
+			PATCH_FAMILY="49"
+			;;
+		4.9-4.1.7.0)
+			# MLNX OFED 4.9-4.1.7.0 version info
+			# https://content.mellanox.com/ofed/MLNX_OFED-4.9-4.1.7.0/MLNX_OFED_SRC-4.9-4.1.7.0.tgz
+			RDMA_CORE_VERSION="50mlnx1"
+			RDMA_CORE_MINOR_VERSION="1.49417"
+			RDMA_CORE_NEW_VERSION="49418.versatushpc"
+			PATCH_FAMILY="49"
+			;;
+		4.9-4.0.8.0)
+			# MLNX OFED 4.9-4.0.8.0 version info
+			# https://content.mellanox.com/ofed/MLNX_OFED-4.9-4.0.8.0/MLNX_OFED_SRC-4.9-4.0.8.0.tgz
+			RDMA_CORE_VERSION="50mlnx1"
+			RDMA_CORE_MINOR_VERSION="1.49408"
+			RDMA_CORE_NEW_VERSION="49409.versatushpc"
+			PATCH_FAMILY="49"
+			;;
+		4.9-3.1.5.0)
+			# MLNX OFED 4.9-3.1.5.0 version info
+			# https://content.mellanox.com/ofed/MLNX_OFED-4.9-3.1.5.0/MLNX_OFED_SRC-4.9-3.1.5.0.tgz
+			RDMA_CORE_VERSION="50mlnx1"
+			RDMA_CORE_MINOR_VERSION="1.49315"
+			RDMA_CORE_NEW_VERSION="49316.versatushpc"
+			PATCH_FAMILY="49"
+			;;
+		4.9-2.2.6.0)
+			# MLNX OFED 4.9-2.2.6.0 version info
+			# https://content.mellanox.com/ofed/MLNX_OFED-4.9-2.2.6.0/MLNX_OFED_SRC-4.9-2.2.6.0.tgz
+			RDMA_CORE_VERSION="50mlnx1"
+			RDMA_CORE_MINOR_VERSION="1.49226"
+			RDMA_CORE_NEW_VERSION="49227.versatushpc"
+			PATCH_FAMILY="49"
+			;;
+		4.9-2.2.4.0)
+			# MLNX OFED 4.9-2.2.4.0 version info
+			# https://content.mellanox.com/ofed/MLNX_OFED-4.9-2.2.4.0/MLNX_OFED_SRC-4.9-2.2.4.0.tgz
+			RDMA_CORE_VERSION="50mlnx1"
+			RDMA_CORE_MINOR_VERSION="1.49224"
+			RDMA_CORE_NEW_VERSION="49225.versatushpc"
+			PATCH_FAMILY="49"
+			;;
+		4.9-0.1.7.0)
+			# MLNX OFED 4.9-0.1.7.0 version info
+			# https://content.mellanox.com/ofed/MLNX_OFED-4.9-0.1.7.0/MLNX_OFED_SRC-4.9-0.1.7.0.tgz
+			RDMA_CORE_VERSION="50mlnx1"
+			RDMA_CORE_MINOR_VERSION="1.49017"
+			RDMA_CORE_NEW_VERSION="49018.versatushpc"
+			PATCH_FAMILY="49"
+			;;
+		*)
+			return 1
+			;;
+	esac
+	return 0
+}
 
-if [ -z $MLNX_OFED_VERSION ]; then
-	echo Cannot detect MLNX OFED, is it installed?
-	exit
-else
-	echo Detected MLNX OFED release: $MLNX_OFED_VERSION
-fi
+apply_release_patch() {
+	case $PATCH_FAMILY in
+		55)
+			patch_mlnx_ofed55
+			;;
+		54)
+			patch_mlnx_ofed54
+			;;
+		49)
+			patch_mlnx_ofed49
+			;;
+		*)
+			echo "Unsupported MLNX OFED release: $MLNX_OFED_VERSION"
+			return 1
+			;;
+	esac
+}
 
-case $MLNX_OFED_VERSION in
-	5.5-1.0.3.2)
-		# MLNX OFED 5.5-1.0.3.2 version info
-		# https://content.mellanox.com/ofed/MLNX_OFED-5.5-1.0.3.2/MLNX_OFED_SRC-5.5-1.0.3.2.tgz
-		RDMA_CORE_VERSION="55mlnx37"
-		RDMA_CORE_MINOR_VERSION="1.55103"
-		RDMA_CORE_NEW_VERSION="55104.versatushpc"
-		;;
-	5.4-3.4.0.0)
-		# MLNX OFED 5.4-3.4.0.0 version info
-		# https://content.mellanox.com/ofed/MLNX_OFED-5.4-3.4.0.0/MLNX_OFED_SRC-5.4-3.4.0.0.tgz
-		RDMA_CORE_VERSION="54mlnx1"
-		RDMA_CORE_MINOR_VERSION="1.54340"
-		RDMA_CORE_NEW_VERSION="54341.versatushpc"
-		;;
-	5.4-3.2.7.2.3)
-		# MLNX OFED 5.4-3.2.7.2.3 version info
-		# https://content.mellanox.com/ofed/MLNX_OFED-5.4-3.2.7.2.3/MLNX_OFED_SRC-5.4-3.2.7.2.3.tgz
-		RDMA_CORE_VERSION="54mlnx1"
-		RDMA_CORE_MINOR_VERSION="1.54327"
-		RDMA_CORE_NEW_VERSION="54328.versatushpc"
-		;;
-	5.4-3.1.0.0)
-		# MLNX OFED 5.4-3.1.0.0 version info
-		# https://content.mellanox.com/ofed/MLNX_OFED-5.4-3.1.0.0/MLNX_OFED_SRC-5.4-3.1.0.0.tgz
-		RDMA_CORE_VERSION="54mlnx1"
-		RDMA_CORE_MINOR_VERSION="1.54310"
-		RDMA_CORE_NEW_VERSION="54311.versatushpc"
-		;;
-	5.4-3.0.3.0)
-		# MLNX OFED 5.4-3.0.3.0 version info
-		# https://content.mellanox.com/ofed/MLNX_OFED-5.4-3.0.3.0/MLNX_OFED_SRC-5.4-3.0.3.0.tgz
-		RDMA_CORE_VERSION="54mlnx1"
-		RDMA_CORE_MINOR_VERSION="1.54303"
-		RDMA_CORE_NEW_VERSION="54304.versatushpc"
-		;;
-	5.4-2.4.1.3)
-		# MLNX OFED 5.4-2.4.1.3 version info
-		# https://content.mellanox.com/ofed/MLNX_OFED-5.4-2.4.1.3/MLNX_OFED_SRC-5.4-2.4.1.3.tgz
-		RDMA_CORE_VERSION="54mlnx1"
-		RDMA_CORE_MINOR_VERSION="1.54241"
-		RDMA_CORE_NEW_VERSION="54242.versatushpc"
-		;;
-	5.4-1.0.3.0)
-		# MLNX OFED 5.4-1.0.3.0 version info
-		# https://content.mellanox.com/ofed/MLNX_OFED-5.4-1.0.3.0/MLNX_OFED_SRC-5.4-1.0.3.0.tgz
-		RDMA_CORE_VERSION="54mlnx1"
-		RDMA_CORE_MINOR_VERSION="1.54103"
-		RDMA_CORE_NEW_VERSION="54104.versatushpc"
-		;;
-	4.9-5.1.0.0)
-		# MLNX OFED 4.9-5.1.0.0 version info
-		# https://content.mellanox.com/ofed/MLNX_OFED-4.9-5.1.0.0/MLNX_OFED_SRC-4.9-5.1.0.0.tgz
-		RDMA_CORE_VERSION="50mlnx1"
-		RDMA_CORE_MINOR_VERSION="1.49510"
-		RDMA_CORE_NEW_VERSION="49510.versatushpc"
-		;;
-	4.9-4.1.7.0)
-		# MLNX OFED 4.9-4.1.7.0 version info
-		# https://content.mellanox.com/ofed/MLNX_OFED-4.9-4.1.7.0/MLNX_OFED_SRC-4.9-4.1.7.0.tgz
-		RDMA_CORE_VERSION="50mlnx1"
-		RDMA_CORE_MINOR_VERSION="1.49417"
-		RDMA_CORE_NEW_VERSION="49418.versatushpc"
-		;;
-	4.9-4.0.8.0)
-		# MLNX OFED 4.9-4.0.8.0 version info
-		# https://content.mellanox.com/ofed/MLNX_OFED-4.9-4.0.8.0/MLNX_OFED_SRC-4.9-4.0.8.0.tgz
-		RDMA_CORE_VERSION="50mlnx1"
-		RDMA_CORE_MINOR_VERSION="1.49408"
-		RDMA_CORE_NEW_VERSION="49409.versatushpc"
-		;;
-	4.9-3.1.5.0)
-		# MLNX OFED 4.9-3.1.5.0 version info
-		# https://content.mellanox.com/ofed/MLNX_OFED-4.9-3.1.5.0/MLNX_OFED_SRC-4.9-3.1.5.0.tgz
-		RDMA_CORE_VERSION="50mlnx1"
-		RDMA_CORE_MINOR_VERSION="1.49315"
-		RDMA_CORE_NEW_VERSION="49316.versatushpc"
-		;;
-	4.9-2.2.6.0)
-		# MLNX OFED 4.9-2.2.6.0 version info
-		# https://content.mellanox.com/ofed/MLNX_OFED-4.9-2.2.6.0/MLNX_OFED_SRC-4.9-2.2.6.0.tgz
-		RDMA_CORE_VERSION="50mlnx1"
-		RDMA_CORE_MINOR_VERSION="1.49226"
-		RDMA_CORE_NEW_VERSION="49227.versatushpc"
-		;;
-	4.9-2.2.4.0)
-		# MLNX OFED 4.9-2.2.4.0 version info
-		# https://content.mellanox.com/ofed/MLNX_OFED-4.9-2.2.4.0/MLNX_OFED_SRC-4.9-2.2.4.0.tgz
-		RDMA_CORE_VERSION="50mlnx1"
-		RDMA_CORE_MINOR_VERSION="1.49224"
-		RDMA_CORE_NEW_VERSION="49225.versatushpc"
-		;;
-	4.9-0.1.7.0)
-		# MLNX OFED 4.9-0.1.7.0 version info
-		# https://content.mellanox.com/ofed/MLNX_OFED-4.9-0.1.7.0/MLNX_OFED_SRC-4.9-0.1.7.0.tgz
-		RDMA_CORE_VERSION="50mlnx1"
-		RDMA_CORE_MINOR_VERSION="1.49017"
-		RDMA_CORE_NEW_VERSION="49018.versatushpc"
-		;;
-	*)
-		# Unsupported MLNX OFED release
+main() {
+	detect_mlnx_ofed_version
+
+	if [ -z "$MLNX_OFED_VERSION" ]; then
+		echo Cannot detect MLNX OFED, is it installed?
+		exit 1
+	else
+		echo Detected MLNX OFED release: $MLNX_OFED_VERSION
+	fi
+
+	if ! load_release_metadata; then
 		echo "Unsupported MLNX OFED release: $MLNX_OFED_VERSION"
-		exit
-		;;
-esac
+		exit 1
+	fi
 
-# Create the directory structure to build the packages
-mkdir -p $RPM_BUILD_ROOT/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
-mkdir -p $WORK_DIR
-cd $WORK_DIR
+	mkdir -p $RPM_BUILD_ROOT/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
+	mkdir -p $WORK_DIR
+	cd $WORK_DIR
 
-# Install required packages for building
-echo Installing required dependencies...
-# Workaround for conflicting Cython from OpenHPC 2.x
-if rpm -q --quiet python3-Cython-ohpc ; then
-	dnf remove -y python3-Cython-ohpc
+	echo Installing required dependencies...
+	if rpm -q --quiet python3-Cython-ohpc ; then
+		dnf remove -y python3-Cython-ohpc
+	fi
+	dnf install -y kernel-rpm-macros rpm-build patch pandoc cmake3 systemd-devel python3-devel libnl3-devel python3-Cython perl-generators
+	echo
+
+	if [ ! -f MLNX_OFED_SRC-$MLNX_OFED_VERSION.tgz ] ; then
+		echo Downloading MLNX OFED $MLNX_OFED_VERSION sources...
+		curl -O https://content.mellanox.com/ofed/MLNX_OFED-$MLNX_OFED_VERSION/MLNX_OFED_SRC-$MLNX_OFED_VERSION.tgz
+	fi
+	echo
+
+	tar zxf MLNX_OFED_SRC-$MLNX_OFED_VERSION.tgz
+	echo Extracting files from SRPMS...
+	rpm2cpio MLNX_OFED_SRC-$MLNX_OFED_VERSION/SRPMS/rdma-core-$RDMA_CORE_VERSION-$RDMA_CORE_MINOR_VERSION.src.rpm | cpio -i
+	echo
+
+	tar zxf rdma-core-$RDMA_CORE_VERSION.tgz
+	cd rdma-core-$RDMA_CORE_VERSION
+
+	echo Patching MLNX OFED to add back support for MLX4 and EFA...
+	echo
+	sleep 1
+
+	if ! apply_release_patch; then
+		exit 1
+	fi
+
+	cp -f rdma-core.spec ..
+	cd ..
+
+	sed -i s/Release:.*/Release:\ $RDMA_CORE_NEW_VERSION/g rdma-core.spec
+	sed -i s/Source:.*/Source:\ rdma-core-%{version}-%{release}.tgz/g rdma-core.spec
+
+	tar czf rdma-core-$RDMA_CORE_VERSION-$RDMA_CORE_NEW_VERSION.tgz rdma-core-$RDMA_CORE_VERSION
+	cp rdma-core-$RDMA_CORE_VERSION-$RDMA_CORE_NEW_VERSION.tgz $RPM_BUILD_ROOT/SOURCES
+
+	echo Building RPMS... it may take a while
+	rpmbuild --nodebuginfo --define "_topdir $RPM_BUILD_ROOT" -ba rdma-core.spec 2>/dev/null >/dev/null
+
+	mkdir -p $RPMS_OUTPUT_DIR
+	mv $RPM_BUILD_ROOT/RPMS/x86_64/* $RPMS_OUTPUT_DIR
+
+	cd $RPMS_OUTPUT_DIR
+	dnf install *
+
+	rm -rf $WORK_DIR
+	rm -rf $RPM_BUILD_ROOT
+
+	echo
+	echo Mellanox OFED installation has been patched for EFA \(libefa.so\) and MLX4 \(libmlx4.so\) support
+	echo RPM packages are available at $RPMS_OUTPUT_DIR
+	echo
+	echo Done
+}
+
+if [ "${PATCH_MLNXOFED_LIBRARY_MODE:-0}" != "1" ]; then
+	main "$@"
 fi
-dnf install -y kernel-rpm-macros rpm-build patch pandoc cmake3 systemd-devel python3-devel libnl3-devel python3-Cython perl-generators
-echo
-
-# We can try to save some bandwidth if the SRC file is already in place, probably not...
-if [ ! -f MLNX_OFED_SRC-$MLNX_OFED_VERSION.tgz ] ; then
-	echo Downloading MLNX OFED $MLNX_OFED_VERSION sources...
-	curl -O https://content.mellanox.com/ofed/MLNX_OFED-$MLNX_OFED_VERSION/MLNX_OFED_SRC-$MLNX_OFED_VERSION.tgz
-fi
-echo
-
-tar zxf MLNX_OFED_SRC-$MLNX_OFED_VERSION.tgz
-echo Extracting files from SRPMS...
-rpm2cpio MLNX_OFED_SRC-$MLNX_OFED_VERSION/SRPMS/rdma-core-$RDMA_CORE_VERSION-$RDMA_CORE_MINOR_VERSION.src.rpm | cpio -i
-echo
-
-tar zxf rdma-core-$RDMA_CORE_VERSION.tgz
-cd rdma-core-$RDMA_CORE_VERSION
-
-echo Patching MLNX OFED to add back support for MLX4 and EFA...
-echo
-sleep 1
-
-# This case statement will handle patching for different releases
-case $MLNX_OFED_VERSION in
-	5.5-1.0.3.2)
-		patch_mlnx_ofed55
-		;;
-	5.4-3.4.0.0|\
-	5.4-3.2.7.2.3|\
-	5.4-3.1.0.0|\
-	5.4-3.0.3.0|\
-	5.4-2.4.1.3|\
-	5.4-1.0.3.0)
-		patch_mlnx_ofed54
-		;;
-	4.9-5.1.0.0|\
-	4.9-4.1.7.0|\
-	4.9-4.0.8.0|\
-	4.9-3.1.5.0|\
-	4.9-2.2.6.0|\
-	4.9-2.2.4.0|\
-	4.9-0.1.7.0)
-		patch_mlnx_ofed49
-		;;
-esac
-
-# Copy specfile to outside of the package
-cp -f rdma-core.spec ..
-cd ..
-
-# Increase the version number and add the distro tag
-sed -i s/Release:.*/Release:\ $RDMA_CORE_NEW_VERSION/g rdma-core.spec
-sed -i s/Source:.*/Source:\ rdma-core-%{version}-%{release}.tgz/g rdma-core.spec
-
-tar czf rdma-core-$RDMA_CORE_VERSION-$RDMA_CORE_NEW_VERSION.tgz rdma-core-$RDMA_CORE_VERSION
-cp rdma-core-$RDMA_CORE_VERSION-$RDMA_CORE_NEW_VERSION.tgz $RPM_BUILD_ROOT/SOURCES
-
-# Rebuild rdma-core
-echo Building RPMS... it may take a while
-rpmbuild --nodebuginfo --define "_topdir $RPM_BUILD_ROOT" -ba rdma-core.spec 2>/dev/null >/dev/null
-
-mkdir -p $RPMS_OUTPUT_DIR
-mv $RPM_BUILD_ROOT/RPMS/x86_64/* $RPMS_OUTPUT_DIR
-
-# We don't want to install with -y; it's a safety measure
-cd $RPMS_OUTPUT_DIR
-dnf install *
-
-# Cleanup
-rm -rf $WORK_DIR
-rm -rf $RPM_BUILD_ROOT
-
-echo
-echo Mellanox OFED installation has been patched for EFA \(libefa.so\) and MLX4 \(libmlx4.so\) support
-echo RPM packages are available at $RPMS_OUTPUT_DIR
-echo
-echo Done

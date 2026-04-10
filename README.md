@@ -22,12 +22,17 @@ If you have an additional use case please update this documentation with a Pull 
 
 * Mellanox OFED
   * 5.5-1.0.3.2
+  * 5.4-3.7.5.0
+  * 5.4-3.6.8.1
+  * 5.4-3.5.8.0
   * 5.4-3.4.0.0
   * 5.4-3.2.7.2.3
   * 5.4-3.1.0.0
   * 5.4-3.0.3.0
   * 5.4-2.4.1.3
   * 5.4-1.0.3.0
+  * 4.9-7.1.0.0
+  * 4.9-6.0.6.0
   * 4.9-5.1.0.0
   * 4.9-4.1.7.0
   * 4.9-4.0.8.0
@@ -47,6 +52,12 @@ and you should be fine.
 The script will execute `dnf` to install the new packages, but it's up to you to
 install it or not. The resulting RPMs will be available by default on 
 `PATCHED-MLNX-OFED` directory inside `$HOME`
+
+## Verification
+
+You can verify patch applicability against upstream `rdma-core` source RPMs with:
+
+`tests/verify-releases.sh 5.4-3.7.5.0 5.4-3.6.8.1 5.4-3.5.8.0 4.9-7.1.0.0 4.9-6.0.6.0`
 
 # Open Source Apache License
 
