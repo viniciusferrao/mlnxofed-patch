@@ -55,6 +55,214 @@ download_source_rpm() {
 	cp "$release_root/MLNX_OFED_SRC-$version/SRPMS/$rpm_name" "$rpm_path"
 }
 
+assert_contains() {
+	file=$1
+	text=$2
+
+	if ! rg -F -- "$text" "$file" >/dev/null; then
+		echo "Missing expected line in $file: $text" >&2
+		return 1
+	fi
+}
+
+assert_not_contains() {
+	file=$1
+	text=$2
+
+	if rg -F -- "$text" "$file" >/dev/null; then
+		echo "Unexpected line in $file: $text" >&2
+		return 1
+	fi
+}
+
+assert_multiline_contains() {
+	file=$1
+	text=$2
+
+	if ! perl -e 'my ($pattern, $file) = @ARGV; local $/; open my $fh, "<", $file or die $!; my $content = <$fh>; exit(index($content, $pattern) >= 0 ? 0 : 1);' -- "$text" "$file"; then
+		echo "Missing expected block in $file" >&2
+		return 1
+	fi
+}
+
+verify_modern_source_markers() {
+	install_dest=$1
+
+	assert_contains CMakeLists.txt 'add_subdirectory(providers/efa)'
+	assert_contains CMakeLists.txt 'add_subdirectory(providers/efa/man)'
+	assert_contains CMakeLists.txt 'add_subdirectory(providers/mlx4)'
+	assert_contains CMakeLists.txt 'add_subdirectory(providers/mlx4/man)'
+	assert_contains providers/mlx4/CMakeLists.txt 'if (0)'
+	assert_contains providers/mlx4/CMakeLists.txt "install(FILES \"mlx4.conf\" DESTINATION \"$install_dest\")"
+	assert_contains pyverbs/CMakeLists.txt 'if (0)'
+	assert_contains pyverbs/CMakeLists.txt 'add_subdirectory(providers/efa)'
+	assert_multiline_contains rdma-core.spec '%config(noreplace) %{_sysconfdir}/rdma/mlx4.conf
+%config(noreplace) %{_sysconfdir}/rdma/modules/rdma.conf
+%if 0
+%dir %{_sysconfdir}/modprobe.d
+%config(noreplace) %{_sysconfdir}/modprobe.d/mlx4.conf
+%config(noreplace) %{_sysconfdir}/modprobe.d/truescale.conf
+%endif'
+	assert_not_contains rdma-core.spec '%{_libdir}/libefa.so.*'
+}
+
+verify_modern_patched_tree() {
+	install_dest=$1
+
+	assert_contains CMakeLists.txt 'add_subdirectory(providers/efa)'
+	assert_contains CMakeLists.txt 'add_subdirectory(providers/efa/man)'
+	assert_contains CMakeLists.txt 'add_subdirectory(providers/mlx4)'
+	assert_contains CMakeLists.txt 'add_subdirectory(providers/mlx4/man)'
+	assert_contains providers/mlx4/CMakeLists.txt "install(FILES \"mlx4.conf\" DESTINATION \"$install_dest\")"
+	assert_not_contains providers/mlx4/CMakeLists.txt 'if (0)'
+	assert_contains pyverbs/CMakeLists.txt 'add_subdirectory(providers/efa)'
+	assert_not_contains pyverbs/CMakeLists.txt 'if (0)'
+	assert_contains rdma-core.spec '- libefa: Amazon Elastic Fabric Adapter'
+	assert_contains rdma-core.spec '- libmlx4: Mellanox ConnectX-3 InfiniBand HCA'
+	assert_multiline_contains rdma-core.spec '%config(noreplace) %{_sysconfdir}/rdma/mlx4.conf
+%config(noreplace) %{_sysconfdir}/rdma/modules/rdma.conf
+%dir %{_sysconfdir}/modprobe.d
+%config(noreplace) %{_sysconfdir}/modprobe.d/mlx4.conf
+%if 0
+%config(noreplace) %{_sysconfdir}/modprobe.d/truescale.conf
+%endif'
+	assert_contains rdma-core.spec '%config(noreplace) %{_sysconfdir}/modprobe.d/mlx4.conf'
+	assert_contains rdma-core.spec '%{_mandir}/man3/efadv*'
+	assert_contains rdma-core.spec '%{_mandir}/man7/efadv*'
+	assert_contains rdma-core.spec '%{_mandir}/man3/mlx4dv*'
+	assert_contains rdma-core.spec '%{_mandir}/man7/mlx4dv*'
+	assert_contains rdma-core.spec '%{_libdir}/libefa.so.*'
+	assert_contains rdma-core.spec '%{_libdir}/libmlx4.so.*'
+}
+
+verify_56plus_source_markers() {
+	install_dest=$1
+
+	assert_multiline_contains CMakeLists.txt 'if (HAVE_COHERENT_DMA)
+if (0)
+add_subdirectory(providers/bnxt_re)
+add_subdirectory(providers/cxgb4) # NO SPARSE
+add_subdirectory(providers/efa)
+add_subdirectory(providers/efa/man)
+add_subdirectory(providers/hns)
+add_subdirectory(providers/irdma)
+add_subdirectory(providers/mlx4)
+add_subdirectory(providers/mlx4/man)
+endif()
+add_subdirectory(providers/mlx5)
+add_subdirectory(providers/mlx5/man)'
+	assert_contains providers/mlx4/CMakeLists.txt 'if (0)'
+	assert_contains providers/mlx4/CMakeLists.txt "install(FILES \"mlx4.conf\" DESTINATION \"$install_dest\")"
+	assert_contains pyverbs/CMakeLists.txt 'if (0)'
+	assert_contains pyverbs/CMakeLists.txt 'add_subdirectory(providers/efa)'
+	assert_multiline_contains rdma-core.spec '%config(noreplace) %{_sysconfdir}/rdma/mlx4.conf
+%config(noreplace) %{_sysconfdir}/rdma/modules/rdma.conf
+%if 0
+%dir %{_sysconfdir}/modprobe.d
+%config(noreplace) %{_sysconfdir}/modprobe.d/mlx4.conf
+%config(noreplace) %{_sysconfdir}/modprobe.d/truescale.conf
+%endif'
+	assert_contains rdma-core.spec '%{sysmodprobedir}/libmlx4.conf'
+	assert_not_contains rdma-core.spec '%{_libdir}/libefa.so.*'
+}
+
+verify_56plus_patched_tree() {
+	install_dest=$1
+
+assert_multiline_contains CMakeLists.txt 'if (HAVE_COHERENT_DMA)
+if (0)
+add_subdirectory(providers/bnxt_re)
+add_subdirectory(providers/cxgb4) # NO SPARSE
+endif()
+add_subdirectory(providers/efa)
+add_subdirectory(providers/efa/man)
+if (0)
+add_subdirectory(providers/hns)
+add_subdirectory(providers/irdma)
+endif()
+add_subdirectory(providers/mlx4)
+add_subdirectory(providers/mlx4/man)
+add_subdirectory(providers/mlx5)
+add_subdirectory(providers/mlx5/man)'
+	assert_contains providers/mlx4/CMakeLists.txt "install(FILES \"mlx4.conf\" DESTINATION \"$install_dest\")"
+	assert_not_contains providers/mlx4/CMakeLists.txt 'if (0)'
+	assert_contains pyverbs/CMakeLists.txt 'add_subdirectory(providers/efa)'
+	assert_not_contains pyverbs/CMakeLists.txt 'if (0)'
+	assert_contains rdma-core.spec '- libefa: Amazon Elastic Fabric Adapter'
+	assert_contains rdma-core.spec '- libmlx4: Mellanox ConnectX-3 InfiniBand HCA'
+	assert_multiline_contains rdma-core.spec '%config(noreplace) %{_sysconfdir}/rdma/mlx4.conf
+%config(noreplace) %{_sysconfdir}/rdma/modules/rdma.conf
+%dir %{_sysconfdir}/modprobe.d
+%config(noreplace) %{_sysconfdir}/modprobe.d/mlx4.conf
+%if 0
+%config(noreplace) %{_sysconfdir}/modprobe.d/truescale.conf
+%endif'
+	assert_contains rdma-core.spec '%{sysmodprobedir}/libmlx4.conf'
+	assert_contains rdma-core.spec '%{_mandir}/man3/efadv*'
+	assert_contains rdma-core.spec '%{_mandir}/man7/efadv*'
+	assert_contains rdma-core.spec '%{_mandir}/man3/mlx4dv*'
+	assert_contains rdma-core.spec '%{_mandir}/man7/mlx4dv*'
+	assert_contains rdma-core.spec '%{_libdir}/libefa.so.*'
+	assert_contains rdma-core.spec '%{_libdir}/libmlx4.so.*'
+}
+
+verify_49_source_markers() {
+	assert_contains CMakeLists.txt 'add_subdirectory(providers/efa)'
+	assert_contains CMakeLists.txt 'add_subdirectory(providers/efa/man)'
+	assert_not_contains rdma-core.spec '%{_libdir}/libefa.so.*'
+}
+
+verify_49_patched_tree() {
+	assert_contains CMakeLists.txt 'add_subdirectory(providers/efa)'
+	assert_contains CMakeLists.txt 'add_subdirectory(providers/efa/man)'
+	assert_contains rdma-core.spec '- libefa: Amazon Elastic Fabric Adapter'
+	assert_contains rdma-core.spec '%{_mandir}/man3/efadv*'
+	assert_contains rdma-core.spec '%{_mandir}/man7/efadv*'
+	assert_contains rdma-core.spec '%{_libdir}/libefa.so.*'
+}
+
+verify_source_markers() {
+	case $PATCH_FAMILY in
+		56plus)
+			verify_56plus_source_markers '${CMAKE_INSTALL_MODPROBEDIR}/'
+			;;
+		59)
+			verify_modern_source_markers '${CMAKE_INSTALL_MODPROBEDIR}/'
+			;;
+		55|54)
+			verify_modern_source_markers '${CMAKE_INSTALL_SYSCONFDIR}/modprobe.d/'
+			;;
+		49)
+			verify_49_source_markers
+			;;
+		*)
+			echo "FAIL $version unsupported patch family $PATCH_FAMILY" >&2
+			return 1
+			;;
+	esac
+}
+
+verify_patched_tree() {
+	case $PATCH_FAMILY in
+		56plus)
+			verify_56plus_patched_tree '${CMAKE_INSTALL_MODPROBEDIR}/'
+			;;
+		59)
+			verify_modern_patched_tree '${CMAKE_INSTALL_MODPROBEDIR}/'
+			;;
+		55|54)
+			verify_modern_patched_tree '${CMAKE_INSTALL_SYSCONFDIR}/modprobe.d/'
+			;;
+		49)
+			verify_49_patched_tree
+			;;
+		*)
+			echo "FAIL $version unsupported patch family $PATCH_FAMILY" >&2
+			return 1
+			;;
+	esac
+}
+
 verify_release() {
 	version=$1
 
@@ -80,10 +288,12 @@ verify_release() {
 	tar zxf "rdma-core-$RDMA_CORE_VERSION.tgz"
 	cd "rdma-core-$RDMA_CORE_VERSION"
 
-	apply_release_patch >/dev/null
-
-	rg -F 'add_subdirectory(providers/efa)' CMakeLists.txt >/dev/null
-	rg -F '%{_libdir}/libefa.so.*' rdma-core.spec >/dev/null
+	verify_source_markers
+	if ! apply_release_patch >"$release_root/patch.log" 2>&1; then
+		cat "$release_root/patch.log" >&2
+		return 1
+	fi
+	verify_patched_tree
 
 	echo "PASS $version"
 }
