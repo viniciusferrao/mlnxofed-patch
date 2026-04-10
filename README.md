@@ -12,14 +12,18 @@ and [oVirt](https://www.ovirt.org) with Openvswitch
 If you have an additional use case please update this documentation with a Pull Request.
 
 ## Requirements:
-* Enterprise Linux 8
+* Enterprise Linux 8 or 9
   * Red Hat Enterprise Linux (RHEL)
   * Oracle Linux
   * Rocky Linux
   * Alma Linux
   * CentOS
 
-* CodeReady Builder / PowerTools repositories must be enabled
+* Enterprise Linux 8
+  * CodeReady Builder / PowerTools repositories must be enabled
+* Enterprise Linux 9
+  * CRB must be enabled
+  * EPEL is required for `pandoc`
 * root privileges are needed for installation
 
 ## Supported MLNX OFED releases
