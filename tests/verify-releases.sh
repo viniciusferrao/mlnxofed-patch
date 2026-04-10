@@ -1,9 +1,18 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-set -euo pipefail
+set -eu
 
-script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-repo_root=$(cd "$script_dir/.." && pwd)
+case $0 in
+	*/*)
+		self_path=$0
+		;;
+	*)
+		self_path=$(command -v "$0" 2>/dev/null || printf '%s\n' "$0")
+		;;
+esac
+
+script_dir=$(CDPATH= cd "$(dirname "$self_path")" && pwd)
+repo_root=$(CDPATH= cd "$script_dir/.." && pwd)
 cache_dir=${VERIFY_RELEASES_CACHE_DIR:-"${XDG_CACHE_HOME:-$HOME/.cache}/mlnxofed-patch/verify-releases"}
 
 if [ "$#" -eq 0 ]; then
@@ -20,17 +29,17 @@ done
 
 mkdir -p "$cache_dir"
 work_root=$(mktemp -d)
-trap 'rm -rf "$work_root"' EXIT
+trap 'rm -rf "$work_root"' 0
 
 PATCH_MLNXOFED_LIBRARY_MODE=1 . "$repo_root/patch-mlnxofed.sh"
 
 download_source_rpm() {
-	local version="$1"
-	local rpm_name="$2"
-	local release_root="$3"
-	local rpm_path="$4"
-	local source_bundle_name="MLNX_OFED_SRC-$version.tgz"
-	local source_bundle_cache_path="$cache_dir/$source_bundle_name"
+	version=$1
+	rpm_name=$2
+	release_root=$3
+	rpm_path=$4
+	source_bundle_name="MLNX_OFED_SRC-$version.tgz"
+	source_bundle_cache_path="$cache_dir/$source_bundle_name"
 
 	if curl -fsSL "https://linux.mellanox.com/public/repo/mlnx_ofed/$version/SRPMS/$rpm_name" -o "$rpm_path"; then
 		return 0
@@ -47,10 +56,7 @@ download_source_rpm() {
 }
 
 verify_release() {
-	local version="$1"
-	local rpm_name
-	local rpm_cache_path
-	local release_root
+	version=$1
 
 	MLNX_OFED_VERSION="$version"
 	if ! load_release_metadata; then
