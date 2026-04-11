@@ -23,12 +23,65 @@ patch_checked() {
 	patch_target=$1
 	patch_file=$2
 
-	patch -u "$patch_target" -i "$patch_file"
+	if ! patch -u "$patch_target" -i "$patch_file"; then
+		return 1
+	fi
 	if [ -f "$patch_target.rej" ]; then
 		echo "Patch rejected for $patch_target" >&2
 		cat "$patch_target.rej" >&2
 		return 1
 	fi
+}
+
+find_rdma_core_archive() {
+	find . -maxdepth 1 \( -name "rdma-core-$RDMA_CORE_VERSION.tgz" -o -name "rdma-core-$RDMA_CORE_VERSION.tar.gz" \) | sed -n '1p'
+}
+
+enable_mlx4_modprobe_install() {
+	install_dest=$1
+	cmake_file=providers/mlx4/CMakeLists.txt
+	install_line="install(FILES \"mlx4.conf\" DESTINATION \"$install_dest\")"
+
+	if ! grep -F "$install_line" "$cmake_file" >/dev/null; then
+		echo "Missing mlx4 modprobe install line" >&2
+		return 1
+	fi
+
+	if ! awk -v install_line="$install_line" '
+		$0 == "if (0)" {
+			if ((getline next_line) <= 0) {
+				print
+				next
+			}
+			if (next_line == install_line) {
+				print next_line
+				if ((getline end_line) > 0 && end_line != "endif()") {
+					print end_line
+				}
+				next
+			}
+			print
+			print next_line
+			next
+		}
+		{ print }
+	' "$cmake_file" > "$cmake_file.tmp"; then
+		rm -f "$cmake_file.tmp"
+		return 1
+	fi
+
+	mv "$cmake_file.tmp" "$cmake_file"
+}
+
+download_source_bundle() {
+	version=$1
+	source_bundle_name=MLNX_OFED_SRC-$version.tgz
+
+	if curl -fL "https://linux.mellanox.com/public/repo/mlnx_ofed/$version/$source_bundle_name" -o "$source_bundle_name" 2>/dev/null; then
+		return 0
+	fi
+
+	curl -fL "https://content.mellanox.com/ofed/MLNX_OFED-$version/$source_bundle_name" -o "$source_bundle_name"
 }
 
 dnf_install_args() {
@@ -98,22 +151,7 @@ echo Patched: CMakeLists.txt
 echo
 
 # providers/mlx4/CMakeLists.txt
-cat > CMakeLists.txt.patch << 'EOF'
---- CMakeLists.txt		2022-02-08 00:46:16.715476920 -0300
-+++ CMakeLists.txt.patched	2023-03-06 17:45:51.130806781 -0300
-@@ -13,8 +13,6 @@
-   mlx4dv.h
- )
-
--if (0)
- install(FILES "mlx4.conf" DESTINATION "${CMAKE_INSTALL_MODPROBEDIR}/")
--endif()
-
- rdma_pkg_config("mlx4" "libibverbs" "${CMAKE_THREAD_LIBS_INIT}")
-EOF
-
-patch_checked providers/mlx4/CMakeLists.txt CMakeLists.txt.patch || return 1
-rm -f CMakeLists.txt.patch
+enable_mlx4_modprobe_install '${CMAKE_INSTALL_MODPROBEDIR}/' || return 1
 echo Patched: providers/mlx4/CMakeLists.txt
 echo
 
@@ -235,22 +273,7 @@ echo Patched: CMakeLists.txt
 echo
 
 # providers/mlx4/CMakeLists.txt
-cat > CMakeLists.txt.patch << 'EOF'
---- CMakeLists.txt		2022-02-08 00:46:16.715476920 -0300
-+++ CMakeLists.txt.patched	2023-03-06 17:45:51.130806781 -0300
-@@ -13,8 +13,6 @@
-   mlx4dv.h
- )
-
--if (0)
- install(FILES "mlx4.conf" DESTINATION "${CMAKE_INSTALL_MODPROBEDIR}/")
--endif()
-
- rdma_pkg_config("mlx4" "libibverbs" "${CMAKE_THREAD_LIBS_INIT}")
-EOF
-
-patch_checked providers/mlx4/CMakeLists.txt CMakeLists.txt.patch || return 1
-rm -f CMakeLists.txt.patch
+enable_mlx4_modprobe_install '${CMAKE_INSTALL_MODPROBEDIR}/' || return 1
 echo Patched: providers/mlx4/CMakeLists.txt
 echo
 
@@ -339,6 +362,54 @@ rm -f rdma-core.spec.patch
 	echo
 }
 
+patch_mlnx_ofed2404plus() {
+# providers/mlx4/CMakeLists.txt
+enable_mlx4_modprobe_install '${CMAKE_INSTALL_MODPROBEDIR}/' || return 1
+echo Patched: providers/mlx4/CMakeLists.txt
+echo
+
+# rdma-core.spec
+cat > rdma-core.spec.patch << 'EOF'
+--- rdma-core.spec		2024-04-22 17:41:21.000000000 -0300
++++ rdma-core.spec.patched	2026-04-11 12:00:00.000000000 -0300
+@@ -467,10 +467,4 @@
+ rm -rf %{buildroot}/%{_initrddir}/
+ %endif
+-
+-rm -f %{buildroot}%{_sysconfdir}/libibverbs.d/efa.driver
+-rm -f %{buildroot}%{_sysconfdir}/libibverbs.d/mlx4.driver
+-rm -f %{buildroot}%{_libdir}/libibverbs/libefa-rdmav*.so
+-rm -f %{buildroot}%{_libdir}/libibverbs/libmlx4-rdmav*.so
+-
+ %post -n rdma-core
+ if [ -x /sbin/udevadm ]; then
+@@ -515,9 +511,9 @@
+ %doc installed_docs/70-persistent-ipoib.rules
+ %config(noreplace) %{_sysconfdir}/rdma/mlx4.conf
+ %config(noreplace) %{_sysconfdir}/rdma/modules/rdma.conf
+-%if 0
+ %dir %{_sysconfdir}/modprobe.d
+ %config(noreplace) %{_sysconfdir}/modprobe.d/mlx4.conf
++%if 0
+ %config(noreplace) %{_sysconfdir}/modprobe.d/truescale.conf
+ %endif
+ %dir %{dracutlibdir}
+@@ -689,6 +685,8 @@
+ %{_libdir}/libmlx4.so.*
+ %{_libdir}/libmlx5.so.*
+ %endif
++%config(noreplace) %{_sysconfdir}/libibverbs.d/efa.driver
++%config(noreplace) %{_sysconfdir}/libibverbs.d/mlx4.driver
+ %config(noreplace) %{_sysconfdir}/libibverbs.d/mlx5.driver
+ %doc installed_docs/libibverbs.md
+EOF
+
+patch_checked rdma-core.spec rdma-core.spec.patch || return 1
+rm -f rdma-core.spec.patch
+echo Patched: rdma-core.spec
+echo
+}
+
 patch_mlnx_ofed55() {
 # CMakeLists.txt
 cat > CMakeLists.txt.patch << 'EOF'
@@ -369,22 +440,7 @@ echo Patched: CMakeLists.txt
 echo
 
 # providers/mlx4/CMakeLists.txt
-cat > CMakeLists.txt.patch << 'EOF'
---- CMakeLists.txt		2021-11-16 12:47:39.000000000 -0300
-+++ CMakeLists.txt.patched	2022-02-08 00:46:16.715476920 -0300
-@@ -13,8 +13,6 @@
-   mlx4dv.h
- )
- 
--if (0)
- install(FILES "mlx4.conf" DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/modprobe.d/")
--endif()
- 
- rdma_pkg_config("mlx4" "libibverbs" "${CMAKE_THREAD_LIBS_INIT}")
-EOF
-
-patch_checked providers/mlx4/CMakeLists.txt CMakeLists.txt.patch || return 1
-rm -f CMakeLists.txt.patch
+enable_mlx4_modprobe_install '${CMAKE_INSTALL_SYSCONFDIR}/modprobe.d/' || return 1
 echo Patched: providers/mlx4/CMakeLists.txt
 echo
 
@@ -503,22 +559,7 @@ echo Patched: CMakeLists.txt
 echo
 
 # providers/mlx4/CMakeLists.txt
-cat > CMakeLists.txt.patch << 'EOF'
---- CMakeLists.txt	2021-06-24 14:52:48.000000000 -0300
-+++ CMakeLists.patched	2022-02-08 01:30:59.191535699 -0300
-@@ -13,8 +13,6 @@
-   mlx4dv.h
- )
-
--if (0)
- install(FILES "mlx4.conf" DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/modprobe.d/")
--endif()
-
- rdma_pkg_config("mlx4" "libibverbs" "${CMAKE_THREAD_LIBS_INIT}")
-EOF
-
-patch_checked providers/mlx4/CMakeLists.txt CMakeLists.txt.patch || return 1
-rm -f CMakeLists.txt.patch
+enable_mlx4_modprobe_install '${CMAKE_INSTALL_SYSCONFDIR}/modprobe.d/' || return 1
 echo Patched: providers/mlx4/CMakeLists.txt
 echo
 
@@ -679,8 +720,90 @@ detect_mlnx_ofed_version() {
 	fi
 }
 
+set_release_metadata() {
+	RDMA_CORE_VERSION=$1
+	RDMA_CORE_MINOR_VERSION=$2
+	RDMA_CORE_NEW_VERSION=$3
+	PATCH_FAMILY=$4
+}
+
 load_release_metadata() {
 	case $MLNX_OFED_VERSION in
+		25.01-0.6.0.0)
+			# MLNX OFED 25.01-0.6.0.0 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/25.01-0.6.0.0/MLNX_OFED_SRC-25.01-0.6.0.0.tgz
+			set_release_metadata "2501mlnx56" "1.2501060" "2501061.versatushpc" "2404plus"
+			;;
+		24.10-0.6.8.0|24.10-0.6.8.1|24.10-0.7.0.0|24.10-1.1.4.0|24.10-1.1.4.0.105|24.10-2.1.8.0|24.10-3.2.5.0|24.10-4.1.4.0)
+			# MLNX OFED 24.10 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/latest-24.10/
+			set_release_metadata "2410mlnx54" "1.2410068" "2410069.versatushpc" "2404plus"
+			;;
+		24.07-0.6.1.0)
+			# MLNX OFED 24.07-0.6.1.0 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/24.07-0.6.1.0/
+			set_release_metadata "2407mlnx52" "1.2407061" "2407062.versatushpc" "2404plus"
+			;;
+		24.07-0.6.0.0)
+			# MLNX OFED 24.07-0.6.0.0 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/24.07-0.6.0.0/MLNX_OFED_SRC-24.07-0.6.0.0.tgz
+			set_release_metadata "2407mlnx52" "1.2407060" "2407061.versatushpc" "2404plus"
+			;;
+		24.04-0.6.6.0|24.04-0.7.0.0)
+			# MLNX OFED 24.04 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/latest-24.04/
+			set_release_metadata "2404mlnx51" "1.2404066" "2404067.versatushpc" "2404plus"
+			;;
+		24.04-0.6.5.0)
+			# MLNX OFED 24.04-0.6.5.0 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/24.04-0.6.5.0/MLNX_OFED_SRC-24.04-0.6.5.0.tgz
+			set_release_metadata "2404mlnx51" "1.2404065" "2404066.versatushpc" "2404plus"
+			;;
+		24.01-0.3.3.1)
+			# MLNX OFED 24.01-0.3.3.1 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/24.01-0.3.3.1/
+			set_release_metadata "2307mlnx47" "1.2401033" "2401034.versatushpc" "59"
+			;;
+		23.10-4.0.9.1|23.10-6.1.6.1)
+			# MLNX OFED 23.10 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/latest-23.10/
+			set_release_metadata "2307mlnx47" "1.2310409" "2310410.versatushpc" "59"
+			;;
+		23.10-3.2.2.0)
+			# MLNX OFED 23.10-3.2.2.0 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/23.10-3.2.2.0/
+			set_release_metadata "2307mlnx47" "1.2310322" "2310323.versatushpc" "59"
+			;;
+		23.10-2.1.3.1|23.10-2.1.3.1.201)
+			# MLNX OFED 23.10 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/23.10-2.1.3.1/
+			set_release_metadata "2307mlnx47" "1.2310213" "2310214.versatushpc" "59"
+			;;
+		23.10-1.1.9.0)
+			# MLNX OFED 23.10-1.1.9.0 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/23.10-1.1.9.0/
+			set_release_metadata "2307mlnx47" "1.2310119" "2310120.versatushpc" "59"
+			;;
+		23.10-0.5.5.0)
+			# MLNX OFED 23.10-0.5.5.0 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/23.10-0.5.5.0/
+			set_release_metadata "2307mlnx47" "1.2310055" "2310056.versatushpc" "59"
+			;;
+		23.07-0.5.0.0|23.07-0.5.1.2)
+			# MLNX OFED 23.07 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/latest-23.07/
+			set_release_metadata "2307mlnx47" "1.2307050" "2307051.versatushpc" "59"
+			;;
+		23.04-1.1.3.0)
+			# MLNX OFED 23.04-1.1.3.0 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/23.04-1.1.3.0/
+			set_release_metadata "2304mlnx44" "1.2304113" "2304114.versatushpc" "59"
+			;;
+		23.04-0.5.3.3)
+			# MLNX OFED 23.04-0.5.3.3 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/23.04-0.5.3.3/
+			set_release_metadata "2304mlnx44" "1.2304053" "2304054.versatushpc" "59"
+			;;
 		5.9-0.5.6.0.127)
 			# MLNX OFED 5.9-0.5.6.0.127 version info
 			# https://content.mellanox.com/ofed/MLNX_OFED-5.9-0.5.6.0.127/MLNX_OFED_SRC-5.9-0.5.6.0.127.tgz
@@ -711,6 +834,14 @@ load_release_metadata() {
 			RDMA_CORE_VERSION="58mlnx43"
 			RDMA_CORE_MINOR_VERSION="1.58604"
 			RDMA_CORE_NEW_VERSION="58605.versatushpc"
+			PATCH_FAMILY="56plus"
+			;;
+		5.8-7.0.6.1)
+			# MLNX OFED 5.8-7.0.6.1 version info
+			# https://content.mellanox.com/ofed/MLNX_OFED-5.8-7.0.6.1/MLNX_OFED_SRC-5.8-7.0.6.1.tgz
+			RDMA_CORE_VERSION="58mlnx43"
+			RDMA_CORE_MINOR_VERSION="1.58706"
+			RDMA_CORE_NEW_VERSION="58707.versatushpc"
 			PATCH_FAMILY="56plus"
 			;;
 		5.8-5.1.1.2)
@@ -957,6 +1088,9 @@ apply_release_patch() {
 		59)
 			patch_mlnx_ofed59
 			;;
+		2404plus)
+			patch_mlnx_ofed2404plus
+			;;
 		56plus)
 			patch_mlnx_ofed56plus
 			;;
@@ -1004,7 +1138,7 @@ main() {
 
 	if [ ! -f MLNX_OFED_SRC-$MLNX_OFED_VERSION.tgz ] ; then
 		echo Downloading MLNX OFED $MLNX_OFED_VERSION sources...
-		curl -O https://content.mellanox.com/ofed/MLNX_OFED-$MLNX_OFED_VERSION/MLNX_OFED_SRC-$MLNX_OFED_VERSION.tgz
+		download_source_bundle "$MLNX_OFED_VERSION"
 	fi
 	echo
 
@@ -1013,7 +1147,12 @@ main() {
 	rpm2cpio MLNX_OFED_SRC-$MLNX_OFED_VERSION/SRPMS/rdma-core-$RDMA_CORE_VERSION-$RDMA_CORE_MINOR_VERSION.src.rpm | cpio -i
 	echo
 
-	tar zxf rdma-core-$RDMA_CORE_VERSION.tgz
+	rdma_core_archive=$(find_rdma_core_archive)
+	if [ -z "$rdma_core_archive" ]; then
+		echo "Cannot find rdma-core-$RDMA_CORE_VERSION source archive" >&2
+		exit 1
+	fi
+	tar zxf "$rdma_core_archive"
 	cd rdma-core-$RDMA_CORE_VERSION
 
 	echo Patching MLNX OFED to add back support for MLX4 and EFA...

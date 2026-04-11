@@ -41,12 +41,12 @@ download_source_rpm() {
 	source_bundle_name="MLNX_OFED_SRC-$version.tgz"
 	source_bundle_cache_path="$cache_dir/$source_bundle_name"
 
-	if curl -fsSL "https://linux.mellanox.com/public/repo/mlnx_ofed/$version/SRPMS/$rpm_name" -o "$rpm_path"; then
+	if curl -fsSL "https://linux.mellanox.com/public/repo/mlnx_ofed/$version/SRPMS/$rpm_name" -o "$rpm_path" 2>/dev/null; then
 		return 0
 	fi
 
 	if [ ! -f "$source_bundle_cache_path" ]; then
-		if ! curl -fsSL "https://linux.mellanox.com/public/repo/mlnx_ofed/$version/$source_bundle_name" -o "$source_bundle_cache_path"; then
+		if ! curl -fsSL "https://linux.mellanox.com/public/repo/mlnx_ofed/$version/$source_bundle_name" -o "$source_bundle_cache_path" 2>/dev/null; then
 			curl -fsSL "https://content.mellanox.com/ofed/MLNX_OFED-$version/$source_bundle_name" -o "$source_bundle_cache_path"
 		fi
 	fi
@@ -83,6 +83,10 @@ assert_multiline_contains() {
 		echo "Missing expected block in $file" >&2
 		return 1
 	fi
+}
+
+find_rdma_core_archive() {
+	find . -maxdepth 1 \( -name "rdma-core-$RDMA_CORE_VERSION.tgz" -o -name "rdma-core-$RDMA_CORE_VERSION.tar.gz" \) | sed -n '1p'
 }
 
 verify_modern_source_markers() {
@@ -133,6 +137,51 @@ verify_modern_patched_tree() {
 	assert_contains rdma-core.spec '%{_mandir}/man7/mlx4dv*'
 	assert_contains rdma-core.spec '%{_libdir}/libefa.so.*'
 	assert_contains rdma-core.spec '%{_libdir}/libmlx4.so.*'
+}
+
+verify_2404plus_source_markers() {
+	assert_contains CMakeLists.txt 'add_subdirectory(providers/efa)'
+	assert_contains CMakeLists.txt 'add_subdirectory(providers/mlx4)'
+	assert_contains providers/mlx4/CMakeLists.txt 'if (0)'
+	assert_contains providers/mlx4/CMakeLists.txt 'install(FILES "mlx4.conf" DESTINATION "${CMAKE_INSTALL_MODPROBEDIR}/")'
+	assert_contains rdma-core.spec 'rm -f %{buildroot}%{_sysconfdir}/libibverbs.d/efa.driver'
+	assert_contains rdma-core.spec 'rm -f %{buildroot}%{_sysconfdir}/libibverbs.d/mlx4.driver'
+	assert_contains rdma-core.spec 'rm -f %{buildroot}%{_libdir}/libibverbs/libefa-rdmav*.so'
+	assert_contains rdma-core.spec 'rm -f %{buildroot}%{_libdir}/libibverbs/libmlx4-rdmav*.so'
+	assert_multiline_contains rdma-core.spec '%config(noreplace) %{_sysconfdir}/rdma/mlx4.conf
+%config(noreplace) %{_sysconfdir}/rdma/modules/rdma.conf
+%if 0
+%dir %{_sysconfdir}/modprobe.d
+%config(noreplace) %{_sysconfdir}/modprobe.d/mlx4.conf
+%config(noreplace) %{_sysconfdir}/modprobe.d/truescale.conf
+%endif'
+	assert_contains rdma-core.spec '%{_libdir}/libefa.so.*'
+	assert_contains rdma-core.spec '%{_libdir}/libmlx4.so.*'
+	assert_not_contains rdma-core.spec '%config(noreplace) %{_sysconfdir}/libibverbs.d/efa.driver'
+	assert_not_contains rdma-core.spec '%config(noreplace) %{_sysconfdir}/libibverbs.d/mlx4.driver'
+}
+
+verify_2404plus_patched_tree() {
+	assert_contains CMakeLists.txt 'add_subdirectory(providers/efa)'
+	assert_contains CMakeLists.txt 'add_subdirectory(providers/mlx4)'
+	assert_contains providers/mlx4/CMakeLists.txt 'install(FILES "mlx4.conf" DESTINATION "${CMAKE_INSTALL_MODPROBEDIR}/")'
+	assert_not_contains providers/mlx4/CMakeLists.txt 'if (0)'
+	assert_not_contains rdma-core.spec 'rm -f %{buildroot}%{_sysconfdir}/libibverbs.d/efa.driver'
+	assert_not_contains rdma-core.spec 'rm -f %{buildroot}%{_sysconfdir}/libibverbs.d/mlx4.driver'
+	assert_not_contains rdma-core.spec 'rm -f %{buildroot}%{_libdir}/libibverbs/libefa-rdmav*.so'
+	assert_not_contains rdma-core.spec 'rm -f %{buildroot}%{_libdir}/libibverbs/libmlx4-rdmav*.so'
+	assert_multiline_contains rdma-core.spec '%config(noreplace) %{_sysconfdir}/rdma/mlx4.conf
+%config(noreplace) %{_sysconfdir}/rdma/modules/rdma.conf
+%dir %{_sysconfdir}/modprobe.d
+%config(noreplace) %{_sysconfdir}/modprobe.d/mlx4.conf
+%if 0
+%config(noreplace) %{_sysconfdir}/modprobe.d/truescale.conf
+%endif'
+	assert_contains rdma-core.spec '%{_libdir}/libefa.so.*'
+	assert_contains rdma-core.spec '%{_libdir}/libmlx4.so.*'
+	assert_contains rdma-core.spec '%config(noreplace) %{_sysconfdir}/libibverbs.d/efa.driver'
+	assert_contains rdma-core.spec '%config(noreplace) %{_sysconfdir}/libibverbs.d/mlx4.driver'
+	assert_contains rdma-core.spec '%config(noreplace) %{_sysconfdir}/libibverbs.d/mlx5.driver'
 }
 
 verify_56plus_source_markers() {
@@ -229,6 +278,9 @@ verify_source_markers() {
 		59)
 			verify_modern_source_markers '${CMAKE_INSTALL_MODPROBEDIR}/'
 			;;
+		2404plus)
+			verify_2404plus_source_markers
+			;;
 		55|54)
 			verify_modern_source_markers '${CMAKE_INSTALL_SYSCONFDIR}/modprobe.d/'
 			;;
@@ -249,6 +301,9 @@ verify_patched_tree() {
 			;;
 		59)
 			verify_modern_patched_tree '${CMAKE_INSTALL_MODPROBEDIR}/'
+			;;
+		2404plus)
+			verify_2404plus_patched_tree
 			;;
 		55|54)
 			verify_modern_patched_tree '${CMAKE_INSTALL_SYSCONFDIR}/modprobe.d/'
@@ -285,7 +340,12 @@ verify_release() {
 
 	cd "$release_root"
 	rpm2cpio "$rpm_name" | cpio -idm >/dev/null 2>&1
-	tar zxf "rdma-core-$RDMA_CORE_VERSION.tgz"
+	rdma_core_archive=$(find_rdma_core_archive)
+	if [ -z "$rdma_core_archive" ]; then
+		echo "FAIL $version missing rdma-core-$RDMA_CORE_VERSION source archive" >&2
+		return 1
+	fi
+	tar zxf "$rdma_core_archive"
 	cd "rdma-core-$RDMA_CORE_VERSION"
 
 	verify_source_markers
