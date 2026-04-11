@@ -69,6 +69,14 @@ You can verify expected source markers and patched output lines against upstream
 
 `tests/verify-releases.sh 25.01-0.6.0.0 24.10-4.1.4.0 24.04-0.6.5.0 23.04-0.5.3.3 5.8-7.0.6.1 5.3-1.0.5.0 4.7-3.2.9.0`
 
+You can check for new upstream Enterprise Linux MLNX OFED releases with:
+
+`tests/check-upstream-releases.sh`
+
+The scheduled GitHub Actions workflow runs the same check weekly. If NVIDIA
+publishes a new RPM-backed Enterprise Linux release, it opens or updates one
+`upstream-update` issue.
+
 # Open Source Apache License
 
 This shell script is made available under the Apache License, Version 2.0:

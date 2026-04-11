@@ -1,0 +1,5 @@
+# Public upstream directories that are intentionally outside this patcher's scope.
+#
+# MLNX_OFED 4.6 has an Enterprise Linux 8 payload, but its rdma-core tree does
+# not include the EFA provider this script re-enables in later releases.
+4.6-1.0.1.1
