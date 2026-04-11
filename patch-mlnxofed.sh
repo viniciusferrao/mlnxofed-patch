@@ -73,6 +73,124 @@ enable_mlx4_modprobe_install() {
 	mv "$cmake_file.tmp" "$cmake_file"
 }
 
+insert_line_before_regex() {
+	patch_target=$1
+	marker_regex=$2
+	insert_line=$3
+
+	if grep -F -- "$insert_line" "$patch_target" >/dev/null; then
+		return 0
+	fi
+
+	if ! awk -v marker_regex="$marker_regex" -v insert_line="$insert_line" '
+		$0 ~ marker_regex && !done {
+			print insert_line
+			done = 1
+		}
+		{ print }
+		END {
+			if (!done) {
+				exit 1
+			}
+		}
+	' "$patch_target" > "$patch_target.tmp"; then
+		rm -f "$patch_target.tmp"
+		echo "Missing marker in $patch_target: $marker_regex" >&2
+		return 1
+	fi
+
+	mv "$patch_target.tmp" "$patch_target"
+}
+
+insert_line_after_regex() {
+	patch_target=$1
+	marker_regex=$2
+	insert_line=$3
+
+	if grep -F -- "$insert_line" "$patch_target" >/dev/null; then
+		return 0
+	fi
+
+	if ! awk -v marker_regex="$marker_regex" -v insert_line="$insert_line" '
+		$0 ~ marker_regex && !done {
+			print
+			print insert_line
+			done = 1
+			next
+		}
+		{ print }
+		END {
+			if (!done) {
+				exit 1
+			}
+		}
+	' "$patch_target" > "$patch_target.tmp"; then
+		rm -f "$patch_target.tmp"
+		echo "Missing marker in $patch_target: $marker_regex" >&2
+		return 1
+	fi
+
+	mv "$patch_target.tmp" "$patch_target"
+}
+
+enable_legacy_modprobe_config() {
+	patch_target=$1
+	mlx4_config='%config(noreplace) %{_sysconfdir}/modprobe.d/mlx4.conf'
+	truescale_config='%config(noreplace) %{_sysconfdir}/modprobe.d/truescale.conf'
+
+	if ! awk -v mlx4_config="$mlx4_config" -v truescale_config="$truescale_config" '
+		$0 == "%if 0" {
+			if ((getline first_line) > 0 && first_line == mlx4_config) {
+				if ((getline second_line) > 0 && second_line == truescale_config) {
+					print "%dir %{_sysconfdir}/modprobe.d"
+					print mlx4_config
+					print "%if 0"
+					print truescale_config
+					done = 1
+					next
+				}
+				print
+				print first_line
+				if (second_line != "") {
+					print second_line
+				}
+				next
+			}
+			print
+			if (first_line != "") {
+				print first_line
+			}
+			next
+		}
+		{ print }
+		END {
+			if (!done) {
+				exit 1
+			}
+		}
+	' "$patch_target" > "$patch_target.tmp"; then
+		rm -f "$patch_target.tmp"
+		echo "Missing legacy modprobe block in $patch_target" >&2
+		return 1
+	fi
+
+	mv "$patch_target.tmp" "$patch_target"
+}
+
+patch_legacy_51to53_spec() {
+	spec_file=rdma-core.spec
+
+	insert_line_before_regex "$spec_file" '^- libmlx5:' '- libmlx4: Mellanox ConnectX-3 InfiniBand HCA' || return 1
+	insert_line_before_regex "$spec_file" '^- libmlx4:' '- libefa: Amazon Elastic Fabric Adapter' || return 1
+	enable_legacy_modprobe_config "$spec_file" || return 1
+	insert_line_before_regex "$spec_file" '^%\\{_mandir\\}/man3/ibv_\\*' '%{_mandir}/man3/efadv*' || return 1
+	insert_line_before_regex "$spec_file" '^%\\{_mandir\\}/man7/rdma_cm\\.\\*' '%{_mandir}/man7/efadv*' || return 1
+	insert_line_after_regex "$spec_file" '^%\\{_mandir\\}/man3/mlx5dv\\*' '%{_mandir}/man3/mlx4dv*' || return 1
+	insert_line_after_regex "$spec_file" '^%\\{_mandir\\}/man7/mlx5dv\\*' '%{_mandir}/man7/mlx4dv*' || return 1
+	insert_line_before_regex "$spec_file" '^%\\{_libdir\\}/libibverbs\\*\\.so\\.\\*' '%{_libdir}/libefa.so.*' || return 1
+	insert_line_after_regex "$spec_file" '^%\\{_libdir\\}/libmlx5\\.so\\.\\*' '%{_libdir}/libmlx4.so.*' || return 1
+}
+
 download_source_bundle() {
 	version=$1
 	source_bundle_name=MLNX_OFED_SRC-$version.tgz
@@ -648,6 +766,65 @@ echo Patched: rdma-core.spec
 echo
 }
 
+patch_mlnx_ofed51to53() {
+# CMakeLists.txt
+cat > CMakeLists.txt.patch << 'EOF'
+--- CMakeLists.txt		2020-11-12 12:00:00.000000000 -0300
++++ CMakeLists.txt.patched	2026-04-11 12:00:00.000000000 -0300
+@@ -675,13 +675,15 @@
+ if (0)
+ add_subdirectory(providers/bnxt_re)
+ add_subdirectory(providers/cxgb4) # NO SPARSE
++endif()
+ add_subdirectory(providers/efa)
+ add_subdirectory(providers/efa/man)
++if (0)
+ add_subdirectory(providers/hns)
+ add_subdirectory(providers/i40iw) # NO SPARSE
++endif()
+ add_subdirectory(providers/mlx4)
+ add_subdirectory(providers/mlx4/man)
+-endif()
+ add_subdirectory(providers/mlx5)
+ add_subdirectory(providers/mlx5/man)
+ if (0)
+EOF
+
+patch_checked CMakeLists.txt CMakeLists.txt.patch || return 1
+rm -f CMakeLists.txt.patch
+echo Patched: CMakeLists.txt
+echo
+
+# providers/mlx4/CMakeLists.txt
+enable_mlx4_modprobe_install '${CMAKE_INSTALL_SYSCONFDIR}/modprobe.d/' || return 1
+echo Patched: providers/mlx4/CMakeLists.txt
+echo
+
+# pyverbs/CMakeLists.txt
+cat > CMakeLists.txt.patch << 'EOF'
+--- CMakeLists.txt		2020-11-12 12:00:00.000000000 -0300
++++ CMakeLists.txt.patched	2026-04-11 12:00:00.000000000 -0300
+@@ -42,7 +42,5 @@
+ # mlx5 and efa providers are not built without coherent DMA, e.g. ARM32 build.
+ if (HAVE_COHERENT_DMA)
+ add_subdirectory(providers/mlx5)
+-if (0)
+ add_subdirectory(providers/efa)
+ endif()
+-endif()
+EOF
+
+patch_checked pyverbs/CMakeLists.txt CMakeLists.txt.patch || return 1
+rm -f CMakeLists.txt.patch
+echo Patched: pyverbs/CMakeLists.txt
+echo
+
+# rdma-core.spec
+patch_legacy_51to53_spec || return 1
+echo Patched: rdma-core.spec
+echo
+}
+
 patch_mlnx_ofed49() {
 # CMakeLists.txt
 cat > CMakeLists.txt.patch << 'EOF'
@@ -1004,6 +1181,51 @@ load_release_metadata() {
 			RDMA_CORE_NEW_VERSION="54104.versatushpc"
 			PATCH_FAMILY="54"
 			;;
+		5.3-1.0.5.0)
+			# MLNX OFED 5.3-1.0.5.0 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/5.3-1.0.5.0/
+			set_release_metadata "52mlnx1" "1.53105" "53106.versatushpc" "51to53"
+			;;
+		5.3-1.0.0.1)
+			# MLNX OFED 5.3-1.0.0.1 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/5.3-1.0.0.1/
+			set_release_metadata "52mlnx1" "1.53100" "53101.versatushpc" "51to53"
+			;;
+		5.2-2.2.0.0)
+			# MLNX OFED 5.2-2.2.0.0 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/5.2-2.2.0.0/
+			set_release_metadata "52mlnx1" "1.52220" "52221.versatushpc" "51to53"
+			;;
+		5.2-1.0.4.0)
+			# MLNX OFED 5.2-1.0.4.0 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/5.2-1.0.4.0/
+			set_release_metadata "52mlnx1" "1.52104" "52105.versatushpc" "51to53"
+			;;
+		5.1-2.5.8.0)
+			# MLNX OFED 5.1-2.5.8.0 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/5.1-2.5.8.0/
+			set_release_metadata "51mlnx1" "1.51258" "51259.versatushpc" "51to53"
+			;;
+		5.1-2.3.7.1)
+			# MLNX OFED 5.1-2.3.7.1 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/5.1-2.3.7.1/
+			set_release_metadata "51mlnx1" "1.51237" "51238.versatushpc" "51to53"
+			;;
+		5.1-0.6.6.0)
+			# MLNX OFED 5.1-0.6.6.0 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/5.1-0.6.6.0/
+			set_release_metadata "51mlnx1" "1.51066" "51067.versatushpc" "51to53"
+			;;
+		5.0-2.1.8.0)
+			# MLNX OFED 5.0-2.1.8.0 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/5.0-2.1.8.0/
+			set_release_metadata "50mlnx1" "1.50218" "50219.versatushpc" "49"
+			;;
+		5.0-1.0.0.0)
+			# MLNX OFED 5.0-1.0.0.0 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/5.0-1.0.0.0/
+			set_release_metadata "50mlnx1" "1.50100.0" "50100.1.versatushpc" "49"
+			;;
 		4.9-7.1.0.0)
 			# MLNX OFED 4.9-7.1.0.0 version info
 			# https://content.mellanox.com/ofed/MLNX_OFED-4.9-7.1.0.0/MLNX_OFED_SRC-4.9-7.1.0.0.tgz
@@ -1076,6 +1298,16 @@ load_release_metadata() {
 			RDMA_CORE_NEW_VERSION="49018.versatushpc"
 			PATCH_FAMILY="49"
 			;;
+		4.7-3.2.9.0)
+			# MLNX OFED 4.7-3.2.9.0 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/4.7-3.2.9.0/
+			set_release_metadata "47mlnx1" "1.47329" "47330.versatushpc" "49"
+			;;
+		4.7-1.0.0.1)
+			# MLNX OFED 4.7-1.0.0.1 version info
+			# https://linux.mellanox.com/public/repo/mlnx_ofed/4.7-1.0.0.1/
+			set_release_metadata "47mlnx1" "1.47100" "47101.versatushpc" "49"
+			;;
 		*)
 			return 1
 			;;
@@ -1099,6 +1331,9 @@ apply_release_patch() {
 			;;
 		54)
 			patch_mlnx_ofed54
+			;;
+		51to53)
+			patch_mlnx_ofed51to53
 			;;
 		49)
 			patch_mlnx_ofed49

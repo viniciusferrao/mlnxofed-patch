@@ -270,6 +270,71 @@ verify_49_patched_tree() {
 	assert_contains rdma-core.spec '%{_libdir}/libefa.so.*'
 }
 
+verify_51to53_source_markers() {
+	assert_multiline_contains CMakeLists.txt 'if (0)
+add_subdirectory(providers/bnxt_re)
+add_subdirectory(providers/cxgb4) # NO SPARSE
+add_subdirectory(providers/efa)
+add_subdirectory(providers/efa/man)
+add_subdirectory(providers/hns)
+add_subdirectory(providers/i40iw) # NO SPARSE
+add_subdirectory(providers/mlx4)
+add_subdirectory(providers/mlx4/man)
+endif()
+add_subdirectory(providers/mlx5)
+add_subdirectory(providers/mlx5/man)'
+	assert_contains providers/mlx4/CMakeLists.txt 'if (0)'
+	assert_contains providers/mlx4/CMakeLists.txt 'install(FILES "mlx4.conf" DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/modprobe.d/")'
+	assert_contains pyverbs/CMakeLists.txt 'if (0)'
+	assert_contains pyverbs/CMakeLists.txt 'add_subdirectory(providers/efa)'
+	assert_multiline_contains rdma-core.spec '%config(noreplace) %{_sysconfdir}/rdma/mlx4.conf
+%config(noreplace) %{_sysconfdir}/rdma/rdma.conf
+%config(noreplace) %{_sysconfdir}/rdma/sriov-vfs
+%if 0
+%config(noreplace) %{_sysconfdir}/modprobe.d/mlx4.conf
+%config(noreplace) %{_sysconfdir}/modprobe.d/truescale.conf
+%endif'
+	assert_not_contains rdma-core.spec '- libefa: Amazon Elastic Fabric Adapter'
+	assert_not_contains rdma-core.spec '%{_libdir}/libefa.so.*'
+}
+
+verify_51to53_patched_tree() {
+	assert_multiline_contains CMakeLists.txt 'if (0)
+add_subdirectory(providers/bnxt_re)
+add_subdirectory(providers/cxgb4) # NO SPARSE
+endif()
+add_subdirectory(providers/efa)
+add_subdirectory(providers/efa/man)
+if (0)
+add_subdirectory(providers/hns)
+add_subdirectory(providers/i40iw) # NO SPARSE
+endif()
+add_subdirectory(providers/mlx4)
+add_subdirectory(providers/mlx4/man)
+add_subdirectory(providers/mlx5)
+add_subdirectory(providers/mlx5/man)'
+	assert_contains providers/mlx4/CMakeLists.txt 'install(FILES "mlx4.conf" DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/modprobe.d/")'
+	assert_not_contains providers/mlx4/CMakeLists.txt 'if (0)'
+	assert_contains pyverbs/CMakeLists.txt 'add_subdirectory(providers/efa)'
+	assert_not_contains pyverbs/CMakeLists.txt 'if (0)'
+	assert_contains rdma-core.spec '- libefa: Amazon Elastic Fabric Adapter'
+	assert_contains rdma-core.spec '- libmlx4: Mellanox ConnectX-3 InfiniBand HCA'
+	assert_multiline_contains rdma-core.spec '%config(noreplace) %{_sysconfdir}/rdma/mlx4.conf
+%config(noreplace) %{_sysconfdir}/rdma/rdma.conf
+%config(noreplace) %{_sysconfdir}/rdma/sriov-vfs
+%dir %{_sysconfdir}/modprobe.d
+%config(noreplace) %{_sysconfdir}/modprobe.d/mlx4.conf
+%if 0
+%config(noreplace) %{_sysconfdir}/modprobe.d/truescale.conf
+%endif'
+	assert_contains rdma-core.spec '%{_mandir}/man3/efadv*'
+	assert_contains rdma-core.spec '%{_mandir}/man7/efadv*'
+	assert_contains rdma-core.spec '%{_mandir}/man3/mlx4dv*'
+	assert_contains rdma-core.spec '%{_mandir}/man7/mlx4dv*'
+	assert_contains rdma-core.spec '%{_libdir}/libefa.so.*'
+	assert_contains rdma-core.spec '%{_libdir}/libmlx4.so.*'
+}
+
 verify_source_markers() {
 	case $PATCH_FAMILY in
 		56plus)
@@ -286,6 +351,9 @@ verify_source_markers() {
 			;;
 		49)
 			verify_49_source_markers
+			;;
+		51to53)
+			verify_51to53_source_markers
 			;;
 		*)
 			echo "FAIL $version unsupported patch family $PATCH_FAMILY" >&2
@@ -310,6 +378,9 @@ verify_patched_tree() {
 			;;
 		49)
 			verify_49_patched_tree
+			;;
+		51to53)
+			verify_51to53_patched_tree
 			;;
 		*)
 			echo "FAIL $version unsupported patch family $PATCH_FAMILY" >&2
