@@ -44,9 +44,14 @@ If you have an additional use case please update this documentation with a Pull 
 | 5.6 | `5.6-2.0.9.0`<br>`5.6-1.0.3.3` |
 | 5.5 | `5.5-1.0.3.2` |
 | 5.4 | `5.4-3.7.5.0`<br>`5.4-3.6.8.1`<br>`5.4-3.5.8.0`<br>`5.4-3.4.0.0`<br>`5.4-3.2.7.2.3`<br>`5.4-3.1.0.0`<br>`5.4-3.0.3.0`<br>`5.4-2.4.1.3`<br>`5.4-1.0.3.0` |
+| 5.3 | `5.3-1.0.5.0`<br>`5.3-1.0.0.1` |
+| 5.2 | `5.2-2.2.0.0`<br>`5.2-1.0.4.0` |
+| 5.1 | `5.1-2.5.8.0`<br>`5.1-2.3.7.1`<br>`5.1-0.6.6.0` |
+| 5.0 | `5.0-2.1.8.0`<br>`5.0-1.0.0.0` |
 | 4.9 | `4.9-7.1.0.0`<br>`4.9-6.0.6.0`<br>`4.9-5.1.0.0`<br>`4.9-4.1.7.0`<br>`4.9-4.0.8.0`<br>`4.9-3.1.5.0`<br>`4.9-2.2.6.0`<br>`4.9-2.2.4.0`<br>`4.9-0.1.7.0` |
+| 4.7 | `4.7-3.2.9.0`<br>`4.7-1.0.0.1` |
 
-Debian-only or Ubuntu-only public drops are not listed because this script rebuilds RPM source packages.
+Debian-only, Ubuntu-only, SLES-only, and pre-Enterprise Linux 8 public drops are not listed because this script targets RPM source packages for Enterprise Linux 8 or 9.
 
 ## Usage:
 
@@ -62,7 +67,7 @@ install it or not. The resulting RPMs will be available by default on
 You can verify expected source markers and patched output lines against upstream
 `rdma-core` source RPMs with:
 
-`tests/verify-releases.sh 25.01-0.6.0.0 24.10-4.1.4.0 24.04-0.6.5.0 23.04-0.5.3.3 5.8-7.0.6.1`
+`tests/verify-releases.sh 25.01-0.6.0.0 24.10-4.1.4.0 24.04-0.6.5.0 23.04-0.5.3.3 5.8-7.0.6.1 5.3-1.0.5.0 4.7-3.2.9.0`
 
 # Open Source Apache License
 
