@@ -2,6 +2,12 @@
 
 Shell script to patch MLNX OFED to add back support for MLX4 and EFA
 
+## Modern DOCA OFED support
+
+This repository targets legacy MLNX OFED releases. If you are looking for a
+modern solution for NVIDIA DOCA OFED, use
+[docaofed-patch](https://github.com/VersatusHPC/docaofed-patch).
+
 ## Use cases
 
 This script has proven to be useful if you're maintaining systems like:
