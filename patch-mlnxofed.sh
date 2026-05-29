@@ -941,9 +941,11 @@ load_release_metadata() {
 			# https://linux.mellanox.com/public/repo/mlnx_ofed/24.01-0.3.3.1/
 			set_release_metadata "2307mlnx47" "1.2401033" "2401034.versatushpc" "59"
 			;;
-		23.10-4.0.9.1|23.10-6.1.6.1)
+		23.10-7.1.8.0|23.10-4.0.9.1|23.10-6.1.6.1)
 			# MLNX OFED 23.10 version info
 			# https://linux.mellanox.com/public/repo/mlnx_ofed/latest-23.10/
+			# NVIDIA pins rdma-core across the 23.10 LTS maintenance releases,
+			# so 7.1.8.0/6.1.6.1/4.0.9.1 share the same source RPM.
 			set_release_metadata "2307mlnx47" "1.2310409" "2310410.versatushpc" "59"
 			;;
 		23.10-3.2.2.0)
@@ -1345,6 +1347,35 @@ apply_release_patch() {
 	esac
 }
 
+# MLNX OFED installed without --upstream-libs keeps the legacy InfiniBand
+# userspace stack, including a standalone libibmad package. The patched
+# rdma-core (infiniband-diags) obsoletes that libibmad, so the legacy package
+# conflicts with the rebuilt RPMs and breaks both this patch and other packages
+# on the system. The upstream-libs package set replaces the standalone libibmad,
+# so its presence is the reliable signal that --upstream-libs was not used.
+# ibsim is intentionally not checked: NVIDIA ships it in both package sets, so
+# it is a downstream victim of the conflict rather than a discriminator.
+# See issue #3.
+check_upstream_libs() {
+	if ! rpm -q --quiet libibmad 2>/dev/null; then
+		return 0
+	fi
+
+	echo "WARNING: MLNX OFED looks like it was installed without --upstream-libs." >&2
+	echo "Found a standalone libibmad package that conflicts with the patched rdma-core." >&2
+	echo "This breaks both this patch and other packages on the system." >&2
+	echo "Reinstall MLNX OFED with --upstream-libs, for example:" >&2
+	echo "    mlnxofedinstall --upstream-libs --add-kernel-support" >&2
+
+	if [ "${ALLOW_NON_UPSTREAM_LIBS:-0}" = "1" ]; then
+		echo "ALLOW_NON_UPSTREAM_LIBS=1 is set, continuing anyway." >&2
+		return 0
+	fi
+
+	echo "Set ALLOW_NON_UPSTREAM_LIBS=1 to ignore this check and continue." >&2
+	return 1
+}
+
 main() {
 	detect_mlnx_ofed_version
 
@@ -1357,6 +1388,10 @@ main() {
 
 	if ! load_release_metadata; then
 		echo "Unsupported MLNX OFED release: $MLNX_OFED_VERSION"
+		exit 1
+	fi
+
+	if ! check_upstream_libs; then
 		exit 1
 	fi
 
