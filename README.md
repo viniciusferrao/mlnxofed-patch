@@ -31,6 +31,14 @@ If you have an additional use case please update this documentation with a Pull 
   * CRB must be enabled
   * EPEL is required for `pandoc`
 * root privileges are needed for installation
+* MLNX OFED must be installed with `--upstream-libs`
+
+MLNX OFED has to be installed with `--upstream-libs` (the default on modern
+releases). Without it the legacy InfiniBand userspace stack (a standalone
+`libibmad` plus `ibsim`) is installed, which conflicts with the patched
+`rdma-core` packages and breaks both this patch and other packages on the
+system. The script detects this situation and aborts with instructions; set
+`ALLOW_NON_UPSTREAM_LIBS=1` to override the check if you know what you are doing.
 
 ## Supported MLNX OFED releases
 
@@ -41,7 +49,7 @@ If you have an additional use case please update this documentation with a Pull 
 | 24.07 | `24.07-0.6.1.0`<br>`24.07-0.6.0.0` |
 | 24.04 | `24.04-0.7.0.0`<br>`24.04-0.6.6.0`<br>`24.04-0.6.5.0` |
 | 24.01 | `24.01-0.3.3.1` |
-| 23.10 | `23.10-6.1.6.1`<br>`23.10-4.0.9.1`<br>`23.10-3.2.2.0`<br>`23.10-2.1.3.1.201`<br>`23.10-2.1.3.1`<br>`23.10-1.1.9.0`<br>`23.10-0.5.5.0` |
+| 23.10 | `23.10-7.1.8.0`<br>`23.10-6.1.6.1`<br>`23.10-4.0.9.1`<br>`23.10-3.2.2.0`<br>`23.10-2.1.3.1.201`<br>`23.10-2.1.3.1`<br>`23.10-1.1.9.0`<br>`23.10-0.5.5.0` |
 | 23.07 | `23.07-0.5.1.2`<br>`23.07-0.5.0.0` |
 | 23.04 | `23.04-1.1.3.0`<br>`23.04-0.5.3.3` |
 | 5.9 | `5.9-0.5.6.0.127`<br>`5.9-0.5.6.0.125`<br>`5.9-0.5.6.0` |
