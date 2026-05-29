@@ -34,11 +34,11 @@ If you have an additional use case please update this documentation with a Pull 
 * MLNX OFED must be installed with `--upstream-libs`
 
 MLNX OFED has to be installed with `--upstream-libs` (the default on modern
-releases). Without it the legacy InfiniBand userspace stack (a standalone
-`libibmad` plus `ibsim`) is installed, which conflicts with the patched
-`rdma-core` packages and breaks both this patch and other packages on the
-system. The script detects this situation and aborts with instructions; set
-`ALLOW_NON_UPSTREAM_LIBS=1` to override the check if you know what you are doing.
+releases). Without it a standalone legacy `libibmad` package is kept, which
+conflicts with the patched `rdma-core` packages and breaks both this patch and
+other packages on the system. The script detects this situation and aborts with
+instructions; set `ALLOW_NON_UPSTREAM_LIBS=1` to override the check if you know
+what you are doing.
 
 ## Supported MLNX OFED releases
 

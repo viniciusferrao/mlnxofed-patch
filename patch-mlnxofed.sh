@@ -1347,26 +1347,23 @@ apply_release_patch() {
 	esac
 }
 
-# MLNX OFED installed without --upstream-libs ships the legacy InfiniBand
-# userspace stack (a standalone libibmad plus ibsim) instead of the upstream
-# rdma-core based packages. The patched rdma-core packages obsolete libibmad,
-# so those legacy packages conflict with the rebuilt RPMs and break both this
-# patch and other packages on the system. See issue #3.
+# MLNX OFED installed without --upstream-libs keeps the legacy InfiniBand
+# userspace stack, including a standalone libibmad package. The patched
+# rdma-core (infiniband-diags) obsoletes that libibmad, so the legacy package
+# conflicts with the rebuilt RPMs and breaks both this patch and other packages
+# on the system. The upstream-libs package set replaces the standalone libibmad,
+# so its presence is the reliable signal that --upstream-libs was not used.
+# ibsim is intentionally not checked: NVIDIA ships it in both package sets, so
+# it is a downstream victim of the conflict rather than a discriminator.
+# See issue #3.
 check_upstream_libs() {
-	conflicting_packages=
-	for pkg in libibmad libibmad-devel ibsim; do
-		if rpm -q --quiet "$pkg" 2>/dev/null; then
-			conflicting_packages="$conflicting_packages $pkg"
-		fi
-	done
-
-	if [ -z "$conflicting_packages" ]; then
+	if ! rpm -q --quiet libibmad 2>/dev/null; then
 		return 0
 	fi
 
 	echo "WARNING: MLNX OFED looks like it was installed without --upstream-libs." >&2
-	echo "Found legacy packages that conflict with the patched rdma-core:$conflicting_packages" >&2
-	echo "These break both this patch and other packages on the system." >&2
+	echo "Found a standalone libibmad package that conflicts with the patched rdma-core." >&2
+	echo "This breaks both this patch and other packages on the system." >&2
 	echo "Reinstall MLNX OFED with --upstream-libs, for example:" >&2
 	echo "    mlnxofedinstall --upstream-libs --add-kernel-support" >&2
 
