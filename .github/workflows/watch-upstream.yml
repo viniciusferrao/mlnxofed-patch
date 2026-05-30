@@ -77,4 +77,8 @@ jobs:
               --label "$ISSUE_LABEL"
           fi
 
-          exit 1
+          # Filing the upstream-update issue is the workflow doing its job, not a
+          # failure: the open issue is the signal that action is needed, so finish
+          # green. Genuine checker errors (missing tools, etc.) still fail the run
+          # via the exit "$status" path above.
+          exit 0
