@@ -911,7 +911,7 @@ load_release_metadata() {
 			# https://linux.mellanox.com/public/repo/mlnx_ofed/25.01-0.6.0.0/MLNX_OFED_SRC-25.01-0.6.0.0.tgz
 			set_release_metadata "2501mlnx56" "1.2501060" "2501061.versatushpc" "2404plus"
 			;;
-		24.10-0.6.8.0|24.10-0.6.8.1|24.10-0.7.0.0|24.10-1.1.4.0|24.10-1.1.4.0.105|24.10-2.1.8.0|24.10-3.2.5.0|24.10-4.1.4.0)
+		24.10-0.6.8.0|24.10-0.6.8.1|24.10-0.7.0.0|24.10-1.1.4.0|24.10-1.1.4.0.105|24.10-2.1.8.0|24.10-3.2.5.0|24.10-4.1.4.0|24.10-5.1.6.1)
 			# MLNX OFED 24.10 version info
 			# https://linux.mellanox.com/public/repo/mlnx_ofed/latest-24.10/
 			set_release_metadata "2410mlnx54" "1.2410068" "2410069.versatushpc" "2404plus"
