@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: write
   contents: read
   issues: write
 
@@ -13,6 +14,16 @@ jobs:
   check-upstream:
     runs-on: ubuntu-latest
     steps:
+      # GitHub disables scheduled workflows in a public repository after 60
+      # days without repository activity, and upstream releases are rarer than
+      # that. Enable this workflow on every scheduled run, as keepalive tools
+      # do, so that the watch survives quiet months without dummy commits.
+      - name: Keep the schedule enabled
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${GITHUB_REPOSITORY}/actions/workflows/watch-upstream.yml/enable"
+
       - name: Check out repository
         uses: actions/checkout@v4
 
