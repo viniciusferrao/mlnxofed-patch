@@ -20,6 +20,7 @@ jobs:
       # do, so that the watch survives quiet months without dummy commits.
       - name: Keep the schedule enabled
         if: github.event_name == 'schedule'
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh api -X PUT "repos/${GITHUB_REPOSITORY}/actions/workflows/watch-upstream.yml/enable"
